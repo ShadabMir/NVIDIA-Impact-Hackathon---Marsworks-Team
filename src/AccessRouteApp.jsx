@@ -74,7 +74,7 @@ function NeedsForm({ profile, setProfile, presets }) {
   </>;
 }
 
-export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
+export default function AccessRouteApp() {
   const [page, setPage] = useState("journey");
   const [step, setStep] = useState(1);
   const [profile, setProfile] = useState(emptyProfile);
@@ -112,7 +112,6 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const [showConditions, setShowConditions] = useState(false);
   const [supportDraft, setSupportDraft] = useState(null);
   const [reviewed, setReviewed] = useState(false);
-  const [geoJson, setGeoJson] = useState(demoGeoJson);
   const [roadOverlay, setRoadOverlay] = useState(null);
   // AI agent (Royal Hallamshire)
   const [agentCtx, setAgentCtx] = useState(null);

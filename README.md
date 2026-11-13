@@ -207,6 +207,19 @@ are in [docs/accessibility-defaults.md](docs/accessibility-defaults.md).
 Validate it before connecting it to the agent's data, keep unknowns explicit, and never relabel
 demo values as verified.
 
+## Backend on another machine
+
+The frontend's dev server forwards API calls to `http://127.0.0.1:8000` by default. If your
+backend runs on a different machine, create a file `.env.local` in the repository root (ignored
+by git) containing, for example:
+
+```text
+BACKEND_URL=http://10.41.30.28:8000
+```
+
+Then restart `npm run dev`. Don't put a personal address in `vite.config.js`: it would break
+everyone else's setup.
+
 ## Phones and other devices
 
 Run Vite with `--host 0.0.0.0`, and add its actual origin (e.g. `http://LAPTOP_IP:5173`) to
