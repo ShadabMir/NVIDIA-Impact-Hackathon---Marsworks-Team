@@ -153,7 +153,8 @@ export default function VoiceInput({ disabled, onApply }) {
     setState("idle"); setResult(null);
   }
 
-  if (service === "not_configured") return null;
+  // Show nothing while checking (no flash) or when voice input isn't set up; Settings explains why.
+  if (service === "checking" || service === "not_configured") return null;
   const available = service === "ready" && !unsupported;
   const found = result ? LABELS.filter(([key]) => result.details[key]) : [];
 
@@ -163,7 +164,7 @@ export default function VoiceInput({ disabled, onApply }) {
         <h3 id="voice-title" className="h5 mb-1">Tell us about your appointment</h3>
         <p className="small mb-2">Say the clinic, the date and the time, for example: <em>“Neuro rehab at the Hallamshire, Monday the 16th at half past ten.”</em></p>
         {!available && <p className="small text-muted mb-2" role="status">
-          {unsupported || (service === "checking" ? "Checking voice input…" : service === "loading" ? "Voice input is starting up. Try again in a minute." : "Voice input isn't available right now. Please type the details below.")}
+          {unsupported || (service === "loading" ? "Voice input is starting up. Try again in a minute." : "Voice input isn't available right now. Please type the details below.")}
         </p>}
 
         {state === "idle" && <button type="button" className="btn btn-primary btn-accessible voice-button" disabled={disabled || !available} onClick={start}>

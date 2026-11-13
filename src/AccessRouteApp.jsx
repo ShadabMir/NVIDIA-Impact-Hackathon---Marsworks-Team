@@ -34,6 +34,16 @@ function nearestArea(point, origins) {
   }
   return best && best.km <= AREA_RADIUS_KM ? best : { id: NO_DATA_AREA, name: "Somewhere else", km: best?.km ?? null };
 }
+// Voice input status for Settings. The voice button is hidden on the appointment page unless "ready".
+const VOICE_STATUS = {
+  ready: "Ready",
+  loading: "Starting: the speech model is loading on the Spark",
+  not_configured: "Not set up: add ASR_BASE_URL to backend/.env and restart the backend (see docs/VOICE.md)",
+  unreachable: "Not reachable: start spark/asr_server.py on the Spark and open the speech tunnel (port 9101)",
+  error: "The speech model failed to load: see ~/asr.log on the Spark",
+  api_unreachable: "Backend not reachable",
+};
+
 // Place names people may say, mapped to the agent's start areas.
 const SPOKEN_AREAS = {
   walkley: ["walkley"], hillsborough: ["hillsborough"], "city-centre": ["city centre", "town centre", "interchange"],
@@ -107,6 +117,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   // AI agent (Royal Hallamshire)
   const [agentCtx, setAgentCtx] = useState(null);
   const [agentStatus, setAgentStatus] = useState("Checking…");
+  const [voiceStatus, setVoiceStatus] = useState(null);
   const [areaId, setAreaId] = useState("walkley");
   const [areaNote, setAreaNote] = useState("");
   const [agentExtras, setAgentExtras] = useState({ needs_accessible_toilet: false, needs_changing_places: false, avoid_crowds: false, can_use_taxi: true, use_model: true });
@@ -122,6 +133,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
     api("/api/v1/hospitals").then(data => { if (active) setHospitals(data); }).catch(() => {});
     api("/api/v1/access/defaults").then(data => { if (active) setPresets(data.presets); }).catch(() => {});
     getAgentContext().then(data => { if (active) setAgentCtx(data); }).catch(() => {});
+    api("/api/v1/appointments/voice/health").then(data => { if (active) setVoiceStatus(data); }).catch(() => { if (active) setVoiceStatus({ status: "api_unreachable" }); });
     getAgentHealth().then(data => { if (active) setAgentStatus(`Available: ${data.model}`); }).catch(() => { if (active) setAgentStatus("Not connected – safety rules only"); });
     api("/api/v1/profile").then(async data => {
       if (!active) return;
@@ -434,6 +446,9 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
         <details className="mt-4"><summary>Where do these suggestions come from?</summary><p className="mt-2">DfT Inclusive Mobility §3.4 gives average distances without a rest: 150 m for wheelchair users, 50 m for stick/cane users and 100 m for mobility impairment without a stick. These vary between people. We use the stick/cane preset provisionally for walking frames too.</p><p>§4.3 prefers level routes and suggests gradients no steeper than 1:20 (5%) where level access is not feasible. This is infrastructure guidance, not a guarantee that 5% is suitable for you.</p><p>The 3-minute boarding allowance, 10-minute transfer margin, total-distance cap and no-aid preset are editable app assumptions. They are not official wheelchair standards.</p><a target="_blank" rel="noreferrer" href="https://www.gov.uk/government/publications/inclusive-mobility-making-transport-accessible-for-passengers-and-pedestrians">Read Department for Transport guidance</a></details>
         <hr /><h3 className="h5">Local model on Spark</h3><p>Model status: <strong>{model}</strong></p>
         <button className="btn btn-outline-primary" disabled={busy} onClick={() => run(async () => { const status = await api("/health/model"); setModel(`Available: ${status.model}`); setMessage("Server and model are available. Test a synthetic letter to confirm image support."); })}>Check model connection</button>
+        <h3 className="h5 mt-4">Voice input (speech-to-text on the Spark)</h3>
+        <p>Status: <strong>{VOICE_STATUS[voiceStatus?.status] || (voiceStatus ? voiceStatus.status : "Checking…")}</strong>{voiceStatus?.device ? ` · ${voiceStatus.model} on ${voiceStatus.device}` : ""}</p>
+        <button className="btn btn-outline-primary" disabled={busy} onClick={() => run(async () => { const data = await api("/api/v1/appointments/voice/health"); setVoiceStatus(data); setMessage(`Voice input: ${VOICE_STATUS[data.status] || data.status}`); })}>Check voice input</button>
         <h3 className="h5 mt-4">AI journey agent (Nemotron)</h3><p>Status: <strong>{agentStatus}</strong></p>
         <button className="btn btn-outline-primary" disabled={busy} onClick={() => run(async () => { const warm = await warmUpModel(); setAgentStatus(`Available: ${warm.model}`); setMessage(`${warm.model} loaded on the Spark in ${warm.load_seconds}s and kept loaded for ${warm.keep_alive}.`); })}>Warm up the AI agent</button>
         <p className="small text-muted mt-2">The server administrator configures the Spark endpoint and model. Appointment images go to that configured model server. Location lookup and live directions use external providers.</p>
