@@ -1,7 +1,7 @@
 # AccessRoute agent — Royal Hallamshire (Margaret persona)
 
-Additive to the existing demo: new endpoints under `/api/v1/agent/*` and a separate page at
-`/agent.html`. The original seven routes and `src/App.jsx` are unchanged.
+The agent adds endpoints under `/api/v1/agent/*` and is the app's home page (`index.html`, code in
+`src/agent/`). The original seven backend routes are unchanged.
 
 ## What the agent does
 
@@ -56,7 +56,7 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5173/agent.html**. Sami's original screens stay at http://localhost:5173/.
+Open **http://localhost:5173/**.
 
 If the API runs on the Spark itself, keep `OLLAMA_BASE_URL=http://127.0.0.1:11434`.
 
@@ -95,7 +95,7 @@ Next real sources (see the datasets doc):
   before a demo.
 - **Context:** the largest agent prompt is about 2,000 tokens, within the 8,192-token limit.
 - **Local compute shown:** each plan returns `model_stats` (model calls, tokens in/out, tokens
-  per second, model time and load time, from Ollama's own counters). `agent.html` shows it in
+  per second, model time and load time, from Ollama's own counters). The page shows it in
   the green panel.
 
 ## Evaluation

@@ -51,10 +51,9 @@ npm run dev
 | http://localhost:8000/health | `{"status":"ok", ...}` |
 | http://localhost:8000/api/v1/agent/health | `"status":"available"` if Nemotron is reachable through the tunnel |
 | http://localhost:8000/docs | Interactive API docs for every route |
-| http://localhost:5173/agent.html | **AccessRoute agent**: Margaret's journey to the Royal Hallamshire |
-| http://localhost:5173/ | Original Sprint 1 screens |
+| http://localhost:5173/ | **AccessRoute agent**: Margaret's journey to the Royal Hallamshire |
 
-**Demo flow on `agent.html`:**
+**Demo flow on http://localhost:5173/:**
 
 1. Click **Plan my journey**. Bus 95 should be recommended.
 2. Open **What the agent did** to see Nemotron's tool calls.
@@ -72,7 +71,7 @@ $body = @{ origin_id = "walkley"; appointment = @{ department = "Neuro-Rehabilit
 ```
 
 **Before a demo: warm up the model** so the first plan is fast. Click **Warm up AI** on
-`agent.html`, or:
+the page, or:
 
 ```powershell
 Invoke-RestMethod -Method Post http://localhost:8000/api/v1/agent/warmup
@@ -224,19 +223,3 @@ python -m pytest -q
 ```
 
 Tests cover access constraints, missing access evidence, disruption fallback, departure feasibility, required confirmation/timezones, invalid uploads and the extraction HTTP contract using a stub. They do not exercise a real model, real transport service or GPU.
-# React + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
