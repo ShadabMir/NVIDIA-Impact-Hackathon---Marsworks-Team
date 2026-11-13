@@ -3,6 +3,9 @@ import {
   draftMessage,
   getContext,
   getModelHealth,
+  getProfile,
+  getWorkspace,
+  saveWorkspace,
   planJourney,
   reassessJourney,
   toIso,
@@ -51,7 +54,36 @@ const MARGARET = {
   can_use_taxi: true,
   condition_notes: "Post-stroke; tires after about 10 minutes",
   use_model: true,
+  step_free_required: true,
 };
+
+function londonFields(value) {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(value));
+  const get = key => parts.find(part => part.type === key)?.value;
+  return { date: `${get("year")}-${get("month")}-${get("day")}`, time: `${get("hour")}:${get("minute")}` };
+}
+
+function formFromRequest(request) {
+  return { ...MARGARET, ...request.needs, ...londonFields(request.appointment.arrive_by),
+    origin_id: request.origin_id, department: request.appointment.department,
+    max_gradient_pct: request.needs.max_gradient_pct ?? "",
+    condition_notes: request.needs.condition_notes || "",
+    earliest: request.earliest_departure ? londonFields(request.earliest_departure).time : "",
+    use_model: request.use_model,
+  };
+}
+
+function profileNeeds(profile) {
+  const access = profile.access;
+  return {
+    mobility_aid: ({ no_aid: "none", limited_mobility: "none" })[profile.mobility_aid] || profile.mobility_aid,
+    max_gradient_pct: access.max_gradient_percent ?? "",
+    max_continuous_roll_m: access.max_continuous_walking_m,
+    max_total_roll_m: access.max_total_walking_m,
+    step_free_required: access.step_free_required || access.wheelchair_user,
+    extra_minutes: Math.min(120, access.min_transfer_minutes + access.boarding_buffer_minutes),
+  };
+}
 
 function buildRequest(f, disruptions) {
   return {
@@ -68,7 +100,7 @@ function buildRequest(f, disruptions) {
       max_continuous_roll_m: Number(f.max_continuous_roll_m),
       max_total_roll_m: Number(f.max_total_roll_m),
       extra_minutes: Number(f.extra_minutes),
-      step_free_required: true,
+      step_free_required: f.step_free_required,
       needs_accessible_toilet: f.needs_accessible_toilet,
       needs_changing_places: f.needs_changing_places,
       avoid_crowds: f.avoid_crowds,
@@ -91,10 +123,33 @@ export default function AgentApp() {
   const [error, setError] = useState("");
   const [activeScenarios, setActiveScenarios] = useState([]);
   const [draft, setDraft] = useState(null);
+  const [accountProfile, setAccountProfile] = useState(null);
+  const [savedMessage, setSavedMessage] = useState("");
+  const [restoring, setRestoring] = useState(true);
 
   useEffect(() => {
+    let active = true;
     getContext().then(setCtx).catch((e) => setApiError(e.message));
     getModelHealth().then(() => setModelOk(true)).catch(() => setModelOk(false));
+    (async () => {
+      try {
+        const profile = await getProfile();
+        if (!active) return;
+        setAccountProfile(profile);
+        const saved = await getWorkspace();
+        if (!active) return;
+        if (saved.agent_request) {
+          setForm(formFromRequest(saved.agent_request));
+          setSavedMessage("Loaded your saved agent form. Check the appointment and needs before planning.");
+        } else {
+          setForm(previous => ({ ...previous, ...profileNeeds(profile) }));
+          setSavedMessage("Loaded your profile's distance, slope and step-free preferences. The Royal Hallamshire appointment is still a separate demo example.");
+        }
+      } catch (failure) {
+        if (active && failure.status !== 401) setSavedMessage(`Could not load saved details: ${failure.message}`);
+      } finally { if (active) setRestoring(false); }
+    })();
+    return () => { active = false; };
   }, []);
 
   const set = (key) => (e) =>
@@ -154,6 +209,18 @@ export default function AgentApp() {
   const toggleScenario = (id) =>
     setActiveScenarios((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
+  const saveForm = () => run(async () => {
+    await saveWorkspace({ agent_request: buildRequest(form, []) });
+    setSavedMessage("Agent form saved to your account, including access needs. Live results and disruption scenarios are not stored.");
+  }, "save");
+
+  const removeSavedForm = () => run(async () => {
+    await saveWorkspace({ agent_request: null });
+    setForm(accountProfile ? { ...MARGARET, ...profileNeeds(accountProfile) } : MARGARET);
+    setPlan(null); setDraft(null); setActiveScenarios([]);
+    setSavedMessage("Saved agent form removed.");
+  }, "save");
+
   return (
     <div className="agent-app">
       <a className="visually-hidden-focusable" href="#main">Skip to main content</a>
@@ -175,7 +242,8 @@ export default function AgentApp() {
       </header>
 
       <main id="main" className="agent-wrap px-3 pb-5">
-        <p className="small"><a href="/">← Appointment upload, profile, settings and live map</a> · This Royal Hallamshire example has separate demo preferences.</p>
+        <p className="small"><a href="/">← Appointment upload, profile, settings and live map</a> · Sign in there to save and restore your forms here.</p>
+        {savedMessage && <p className="alert alert-info" role="status">{savedMessage}</p>}
         {apiError && (
           <div className="alert alert-danger" role="alert">
             Cannot reach the backend: {apiError}. Is <code>uvicorn</code> running on port 8000?
@@ -188,7 +256,8 @@ export default function AgentApp() {
             <form className="card shadow-sm" onSubmit={onPlan}>
               <div className="card-body">
                 <h2 id="form-title" className="h5 fw-bold">Your appointment and needs</h2>
-                <p className="small text-muted">Pre-filled for Margaret, 67, a powered wheelchair user in Walkley.</p>
+                <p className="small text-muted">{accountProfile ? `Signed in as ${accountProfile.first_name}. You can save these details to your account.` : "Guest demo for Margaret, a fictional wheelchair user in Walkley. Sign in on the main page to save details."}</p>
+                {restoring && <p role="status">Checking for saved details…</p>}
 
                 <Field label="Starting from" id="origin">
                   <select id="origin" className="form-select" value={form.origin_id} onChange={set("origin_id")}>
@@ -237,6 +306,7 @@ export default function AgentApp() {
                   </div>
                 </div>
                 <Check id="wc" label="I need an accessible toilet on the way" checked={form.needs_accessible_toilet} onChange={set("needs_accessible_toilet")} />
+                <Check id="stepfree" label="I need a route without steps" checked={form.step_free_required} onChange={set("step_free_required")} />
                 <Check id="cp" label="I need a Changing Places toilet" checked={form.needs_changing_places} onChange={set("needs_changing_places")} />
                 <Check id="crowd" label="Avoid crowds if possible" checked={form.avoid_crowds} onChange={set("avoid_crowds")} />
                 <Check id="taxi" label="A taxi is an option for me" checked={form.can_use_taxi} onChange={set("can_use_taxi")} />
@@ -245,7 +315,15 @@ export default function AgentApp() {
                 </Field>
                 <Check id="ai" label="Use the local AI agent (Nemotron on DGX Spark)" checked={form.use_model} onChange={set("use_model")} />
 
-                <button type="submit" className="btn btn-primary btn-lg w-100 mt-2" disabled={!!busy}>
+                {accountProfile && <div className="d-flex flex-wrap gap-2 my-3">
+                  <button type="button" className="btn btn-outline-primary" disabled={!!busy || restoring} onClick={saveForm}>Save this form</button>
+                  <button type="button" className="btn btn-outline-secondary" disabled={!!busy || restoring} onClick={() => {
+                    setForm(previous => ({ ...previous, ...profileNeeds(accountProfile) })); setPlan(null); setDraft(null);
+                    setSavedMessage("Profile preferences applied. The agent uses transfer plus boarding time as one extra-time allowance; check it for this journey.");
+                  }}>Use profile preferences</button>
+                  <button type="button" className="btn btn-outline-danger" disabled={!!busy || restoring} onClick={removeSavedForm}>Remove saved form</button>
+                </div>}
+                <button type="submit" className="btn btn-primary btn-lg w-100 mt-2" disabled={!!busy || restoring}>
                   {busy === "plan" ? "Agent is checking routes…" : "Plan my journey"}
                 </button>
               </div>

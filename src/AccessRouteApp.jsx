@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { api, getPosition, londonArrival, MOBILITY_OPTIONS, presetFor } from "./api";
 import LiveJourneyMap from "./LiveJourneyMap";
+import LiveConditions from "./LiveConditions";
 
-const emptyProfile = () => ({ first_name: "", last_name: "", email: "", default_hospital_id: "northern-general-demo", mobility_aid: "manual_wheelchair", access: presetFor("manual_wheelchair") });
+const emptyProfile = () => ({ first_name: "", last_name: "", email: "", default_hospital_id: "northern-general-demo", default_starting_address: "", mobility_aid: "manual_wheelchair", access: presetFor("manual_wheelchair") });
+const initialAppointment = () => ({ hospital_id: "northern-general-demo", department: "Demo outpatient department", date: "2026-11-20", arrival: "10:00", origin: "" });
 const formatTime = value => new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 
 function Field({ label, children }) {
@@ -55,7 +57,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [appointment, setAppointment] = useState({ hospital_id: "northern-general-demo", department: "Demo outpatient department", date: "2026-11-20", arrival: "10:00", origin: "" });
+  const [appointment, setAppointment] = useState(initialAppointment);
   const [confirmed, setConfirmed] = useState(false);
   const [extractionWarnings, setExtractionWarnings] = useState([]);
   const [filename, setFilename] = useState("");
@@ -76,6 +78,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const [supportDraft, setSupportDraft] = useState(null);
   const [reviewed, setReviewed] = useState(false);
   const [geoJson, setGeoJson] = useState(demoGeoJson);
+  const [roadOverlay, setRoadOverlay] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -83,8 +86,14 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
     api("/health/model").then(() => { if (active) setModel("Available"); }).catch(() => { if (active) setModel("Not connected"); });
     api("/api/v1/hospitals").then(data => { if (active) setHospitals(data); }).catch(() => {});
     api("/api/v1/access/defaults").then(data => { if (active) setPresets(data.presets); }).catch(() => {});
-    api("/api/v1/profile").then(data => {
-      if (active) { setProfile(data); setSignedIn(true); setAppointment(previous => ({ ...previous, hospital_id: data.default_hospital_id })); }
+    api("/api/v1/profile").then(async data => {
+      if (!active) return;
+      setProfile(data); setSignedIn(true);
+      setAppointment(previous => ({ ...previous, hospital_id: data.default_hospital_id, origin: data.default_starting_address || "" }));
+      try {
+        const saved = await api("/api/v1/workspace");
+        if (active && saved.appointment) { setAppointment(saved.appointment); setMessage("Loaded your saved appointment. Check the details before planning."); }
+      } catch (failure) { if (active) setError(`Could not load your saved appointment: ${failure.message}`); }
     }).catch(() => {});
     return () => { active = false; };
   }, []);
@@ -203,13 +212,27 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
     setProfile(saved); setMessage("Your profile and journey preferences have been saved.");
   });
 
+  const saveAppointment = () => run(async () => {
+    if (!signedIn) throw new Error("Sign in to save your appointment.");
+    await api("/api/v1/workspace", { method: "PATCH", body: JSON.stringify({ appointment }) });
+    setMessage("Appointment details saved to your account. The uploaded image and live GPS position are not stored.");
+  });
+
+  const deleteAppointment = () => run(async () => {
+    await api("/api/v1/workspace", { method: "PATCH", body: JSON.stringify({ appointment: null }) });
+    setAppointment(initialAppointment()); setConfirmed(false); setFilename(""); setExtractionWarnings([]);
+    setPlan(null); setJourneyPayload(null); setSupportDraft(null); setMessage("Saved appointment removed.");
+  });
+
   const authenticate = event => {
     event.preventDefault();
     run(async () => {
       const body = authMode === "register" ? { ...profile, password } : { email: profile.email, password };
       const result = await api(`/api/v1/auth/${authMode}`, { method: "POST", body: JSON.stringify(body) });
       setProfile(result); setSignedIn(true); setPassword(""); setPage("profile");
-      setAppointment(previous => ({ ...previous, hospital_id: result.default_hospital_id }));
+      const saved = await api("/api/v1/workspace");
+      setAppointment(saved.appointment || { ...initialAppointment(), hospital_id: result.default_hospital_id, origin: result.default_starting_address || "" });
+      setConfirmed(false); setPlan(null); setJourneyPayload(null); setSupportDraft(null);
       setMessage(authMode === "register" ? "Account created. Your preferences are saved." : "You are signed in.");
     });
   };
@@ -222,7 +245,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
       </div>
     </header>
     <div className="app-container-wide px-3">
-      <p className="small"><a href="/agent.html">Open the Royal Hallamshire agent demonstration →</a> · Separate demo scenario; your profile preferences are not transferred.</p>
+      <p className="small"><a href="/agent.html">Open the Royal Hallamshire agent demonstration →</a> · Save profile preferences to load them there. Appointment forms use separate hospital scenarios.</p>
       <nav className="account-nav" aria-label="Main navigation">{[["journey", "Your journey"], ["profile", "Profile"], ["settings", "Settings"], ["auth", signedIn ? "Account" : "Sign in / Register"]].map(([id, label]) => <button key={id} type="button" className={`btn ${page === id ? "btn-primary" : "btn-outline-primary"}`} aria-current={page === id ? "page" : undefined} onClick={() => openPage(id)}>{label}</button>)}</nav>
       {error && <div className="alert alert-danger" role="alert">{error}</div>}
       {message && <div className="alert alert-success" role="status">{message}</div>}
@@ -230,7 +253,11 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
 
       {page === "auth" && <section className="card shadow-sm"><div className="card-body">
         {signedIn ? <><h2 className="h4">You are signed in</h2><p>{profile.first_name} {profile.last_name} · {profile.email}</p><button className="btn btn-outline-danger btn-accessible" disabled={busy} onClick={() => run(async () => {
-          await api("/api/v1/auth/logout", { method: "POST" }); setSignedIn(false); setProfile(emptyProfile()); setPassword(""); setPlan(null); setJourneyPayload(null); setSupportDraft(null); setMessage("Signed out. Saved preferences remain in your account.");
+          await api("/api/v1/auth/logout", { method: "POST" }); setSignedIn(false); setProfile(emptyProfile()); setPassword(""); setPlan(null); setJourneyPayload(null); setSupportDraft(null);
+          setAppointment(initialAppointment()); setConfirmed(false); setFilename(""); setExtractionWarnings([]); setNavigation(null); setLocation(null); setOriginPoint(null); setDestination(null);
+          if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
+          watchId.current = null; setTracking(false); setLocationMessage("");
+          setMessage("Signed out. Saved preferences and appointments remain in your account.");
         })}>Sign out</button></> : <>
           <h2 className="h4">{authMode === "register" ? "Create your profile" : "Welcome back"}</h2>
           <p>Save your access needs so you do not have to enter them for each journey. Use fictional details for this prototype.</p>
@@ -251,6 +278,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
           <Field label="First name"><input required={signedIn} className="form-control form-control-lg-accessible" value={profile.first_name} onChange={e => changeProfileField("first_name", e.target.value)} /></Field>
           <Field label="Surname"><input required={signedIn} className="form-control form-control-lg-accessible" value={profile.last_name} onChange={e => changeProfileField("last_name", e.target.value)} /></Field>
           <Field label="Email"><input type="email" required={signedIn} className="form-control form-control-lg-accessible" value={profile.email} onChange={e => changeProfileField("email", e.target.value)} /></Field>
+          <Field label="Usual starting address (optional)"><input autoComplete="street-address" maxLength={500} className="form-control form-control-lg-accessible" value={profile.default_starting_address || ""} onChange={e => changeProfileField("default_starting_address", e.target.value)} /></Field>
           <Field label="Usual hospital"><select className="form-select form-select-lg-accessible" value={profile.default_hospital_id} onChange={e => changeProfileField("default_hospital_id", e.target.value)}><option value="northern-general-demo">Northern General Hospital (demo)</option></select></Field>
           <NeedsForm profile={profile} setProfile={setProfile} presets={presets} />
           <button className="btn btn-primary btn-accessible w-100" disabled={busy}>Save profile</button>
@@ -284,6 +312,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
             <p className="small text-muted">With your permission, your coordinates are sent to OpenStreetMap / Nominatim once to find a nearby address. Check it before continuing.</p>
             {locationMessage && <p className="small" role="status">{locationMessage}</p>}
             <label className="need-toggle"><input required type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} /> I have checked the hospital, date and arrival time.</label>
+            {signedIn ? <div className="d-flex flex-wrap gap-2 mb-3"><button type="button" disabled={busy} className="btn btn-outline-primary" onClick={saveAppointment}>Save appointment to my account</button><button type="button" disabled={busy} className="btn btn-outline-danger" onClick={deleteAppointment}>Remove saved appointment</button></div> : <p className="small"><button type="button" className="btn btn-link p-0" onClick={() => openPage("auth")}>Sign in</button> to save appointment details across visits.</p>}
             <button className="btn btn-primary btn-accessible w-100" disabled={busy}>Continue to access needs →</button>
           </form>
         </div></section>}
@@ -306,7 +335,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
             <button className="btn btn-primary btn-accessible mb-2" onClick={toggleTracking}>{tracking ? "Stop live location" : "Start live location"}</button>
             {locationMessage && <p role="status" className="small">{locationMessage}</p>}
             <p className="small text-muted">GPS tracking stays in this browser. Map tiles use OpenStreetMap. Route and address requests send coordinates or the entered address to the named provider.</p>
-            <LiveJourneyMap location={location || originPoint} destination={destination} geometry={navigation?.geometry} onDestination={changeDestination} focus={focus} />
+            <LiveJourneyMap location={location || originPoint} destination={destination} geometry={navigation?.geometry} onDestination={changeDestination} focus={focus} roadOverlay={roadOverlay} />
             <div className="mt-3"><p className="small">Starting address: {appointment.origin || "Not chosen"}</p><button className="btn btn-outline-primary" disabled={busy} onClick={() => search("origin")}>Find starting address on map</button></div>
             <Field label="Destination address or hospital entrance"><input className="form-control form-control-lg-accessible" placeholder="Search, or tap an entrance on the map" value={destinationQuery} onChange={e => setDestinationQuery(e.target.value)} /></Field>
             <button className="btn btn-outline-primary mb-2" disabled={busy} onClick={() => search("destination")}>Find destination</button>
@@ -329,6 +358,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
               <button className="btn btn-outline-primary" disabled={navigationIndex >= navigation.steps.length - 1} onClick={() => { const next = navigationIndex + 1; setNavigationIndex(next); setFocus(navigation.steps[next]?.coordinate); }}>Mark current step complete</button>
             </div>}
           </div></section>
+          <LiveConditions onRoadsGeoJson={setRoadOverlay} />
           <section><h2 className="h4">Appointment journey prototype</h2><RouteResults result={plan} />{plan && <button className="btn btn-outline-danger btn-accessible w-100" disabled={busy} onClick={replan}>Simulate direct-route disruption →</button>}</section>
           <details className="card p-3"><summary>Advanced: inspect demonstration GeoJSON layers</summary><p className="alert alert-warning small mt-2">These hand-authored Royal Hallamshire overlays are separate fictional examples, not a computed route or verified LiDAR/access survey. They do not follow your live position.</p><AdvancedMap geojsonData={geoJson} onImportGeoJson={setGeoJson} focusTarget={null} showDisruption={false} /></details>
         </div>}

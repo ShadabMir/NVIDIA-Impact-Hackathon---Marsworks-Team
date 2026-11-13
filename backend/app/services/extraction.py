@@ -20,7 +20,7 @@ async def extract_appointment(data: bytes, settings: Settings) -> ExtractionResp
     if not settings.ollama_model:
         raise HTTPException(503, "Set OLLAMA_MODEL to an installed vision-capable model on Spark.")
     try:
-        async with httpx.AsyncClient(timeout=settings.ollama_timeout_seconds) as client:
+        async with httpx.AsyncClient(timeout=settings.ollama_timeout_seconds, trust_env=False) as client:
             response = await client.post(
                 f"{settings.ollama_base_url.rstrip('/')}/api/chat",
                 json={

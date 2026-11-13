@@ -19,6 +19,7 @@ from app.services.extraction import extract_appointment
 from app.services.journeys import NOTICE, load_routes, plan_journey
 from app.profiles import router as profile_router
 from app.navigation import router as navigation_router
+from app.workspace import router as workspace_router
 
 settings = get_settings()
 
@@ -34,12 +35,13 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT"],
+    allow_methods=["GET", "POST", "PUT", "PATCH"],
     allow_headers=["Content-Type"],
 )
 app.include_router(profile_router)
 app.include_router(navigation_router)
 app.include_router(agent_router)
+app.include_router(workspace_router)
 
 
 @app.get("/health", tags=["System"])
@@ -53,7 +55,7 @@ async def model_health():
     if not settings.ollama_model:
         raise HTTPException(503, "OLLAMA_MODEL is not configured.")
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
+        async with httpx.AsyncClient(timeout=5, trust_env=False) as client:
             response = await client.get(f"{settings.ollama_base_url.rstrip('/')}/api/tags")
             response.raise_for_status()
         names = {model["name"] for model in response.json()["models"]}

@@ -85,7 +85,7 @@ See [AGENT.md](AGENT.md) for how the agent works, the demo script and data sourc
 - Disruption reassessment and a template travel-support draft; nothing is sent.
 - Three clearly labelled fictional route fixtures for frontend development.
 
-**Merged application:** `/` provides appointment upload, profiles, settings, live GPS and optional outdoor directions; `/agent.html` provides the Royal Hallamshire model-directed agent demonstration. Both are built by `npm run build` and use the same `/backend` Vite proxy. The frontend pages link to one another but do not share appointment/profile state yet. Their access schemas and hospital scenarios remain separate.
+**Merged application:** `/` provides appointment upload, profiles, settings, live GPS and optional outdoor directions; `/agent.html` provides the Royal Hallamshire model-directed agent demonstration. Both are built by `npm run build` and use the same `/backend` Vite proxy. The frontend pages link to one another and load the same signed-in account. The agent can apply saved profile preferences. Hospital-specific appointment forms remain separate and can each be explicitly saved or removed.
 
 **Current boundary:** appointment-journey routes, times, gradients and access flags are simulated, not real travel advice. The original journey routes support `demo-home` / `northern-general-demo`; the agent routes use the Royal Hallamshire fixtures. Live weather is optional, live outdoor wheelchair directions require an ORS key, and no live bus feed is connected. The agent can use model-directed tool calling when Spark is configured; rules-only fallback is explicitly labelled. The browser-only staff preview does not send requests or dispatch transport. Real Spark inference still needs deployment verification.
 
@@ -234,3 +234,11 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the Oxlint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+
+## Saved UI data
+
+Sign in to use database-backed forms. On the appointment page, use **Save appointment to my account**; on the agent page, use **Save this form**. Each form restores after refresh/sign-in, and can be removed independently. Profile settings include an optional usual starting address. The agent can explicitly apply saved distance, slope and step-free preferences; the two hospital scenarios remain separate.
+
+The additive SQLite migration creates `user_workspace` without deleting users, sessions or password hashes. Existing profiles receive an empty optional starting address until edited. Tables are initialized automatically; no database reset is required. Raw appointment images, live GPS traces, calculated routes and transient road incidents are not saved. Restart the backend to load the new endpoints.
+
+The incoming weather/Live Roads panel is available on the map page, with its provider proxy preserved. It shows request failures rather than substituting fictional incidents. These external feeds still require live network/provider validation and do not automatically change route assessments.

@@ -39,6 +39,7 @@ class Profile(StrictModel):
     last_name: str = Field(min_length=1, max_length=80)
     email: str = Field(min_length=3, max_length=254)
     default_hospital_id: Literal["northern-general-demo"] = "northern-general-demo"
+    default_starting_address: str = Field(default="", max_length=500)
     mobility_aid: MobilityAid = "manual_wheelchair"
     access: AccessRequirements
 
@@ -72,6 +73,7 @@ def database():
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path, timeout=10)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys=ON")
     connection.executescript("""
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL,
@@ -80,7 +82,15 @@ def database():
         CREATE TABLE IF NOT EXISTS sessions (
             token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires REAL NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS user_workspace (
+            user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            appointment TEXT,
+            agent_request TEXT,
+            updated_at TEXT NOT NULL
+        );
     """)
+    if connection.execute("PRAGMA user_version").fetchone()[0] == 0:
+        connection.execute("PRAGMA user_version=1")
     return connection
 
 

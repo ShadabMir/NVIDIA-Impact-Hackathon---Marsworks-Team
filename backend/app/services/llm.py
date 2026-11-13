@@ -12,7 +12,8 @@ class ModelUnavailable(Exception):
 
 def make_client(settings: Settings) -> httpx.AsyncClient:
     # Tests monkeypatch this to inject a fake model server.
-    return httpx.AsyncClient(timeout=settings.ollama_timeout_seconds)
+    # Model traffic is local/private and must not inherit a system HTTP/SOCKS proxy.
+    return httpx.AsyncClient(timeout=settings.ollama_timeout_seconds, trust_env=False)
 
 
 async def chat(

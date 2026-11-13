@@ -2,9 +2,9 @@
 
 Merged with the profile/map application: agent endpoints remain under `/api/v1/agent/*`, with
 the agent demonstration at `/agent.html` and the profile/settings/map interface at `/`.
-Both pages are included in the production build and use the same API proxy. Their demo
-preferences and appointment state are still separate; this merge does not translate profiles
-into the agent's different access schema.
+Both pages are included in the production build and use the same API proxy. The signed-in account is shared. The agent can apply the saved profile
+distance, slope and step-free preferences, and save/restore its own typed form. The
+Royal Hallamshire and Northern General appointment forms remain separate hospital scenarios.
 
 ## What the agent does
 

@@ -182,6 +182,19 @@ Profile fields: `first_name`, `last_name`, `email`, `default_hospital_id` (curre
 
 These access fields are accepted by journey planning and reassessment. Known simulated slopes are compared against the preference; missing gradients stay unknown. Boarding buffer is added once per bus leg to overall journey duration. Use `arrive_at - leave_at` for total planned elapsed time; fixture leg times remain baseline.
 
+Profile also accepts `default_starting_address` (optional string, up to 500 characters). Existing profiles load with an empty value until edited. No password/session reset is needed.
+
+## Saved UI forms
+
+- `GET /api/v1/workspace`: signed-in user's `{appointment, agent_request, updated_at}`. Missing forms are null.
+- `PATCH /api/v1/workspace`: update either form without replacing the other. Send a field as null to delete it. Requires the account cookie and a trusted Origin.
+- `appointment` matches the main frontend form: `{hospital_id, department, date, arrival, origin}`. `date` is YYYY-MM-DD; `arrival` is HH:MM in hospital UK time. Only the current demo hospital ID is accepted.
+- `agent_request` uses the existing `AgentPlanRequest` schema: appointment, needs, origin ID, optional earliest departure and model toggle. Save does not call the model or run route planning.
+- Raw uploaded letters, GPS traces, route results and transient road incidents are not accepted as saved workspace fields.
+- Both reads and writes return `Cache-Control: no-store`. Guests can plan but cannot save forms. Saved appointments must be reconfirmed after loading.
+
+The main appointment screen and agent form have explicit save/remove controls. The agent can load the signed-in profile's distance, slope and step-free settings. It combines transfer and boarding buffers into its own single extra-time field; users should review that translation. The hospital-specific appointment forms remain separate, and neither is silently converted into an appointment at another hospital.
+
 Account errors: 401 invalid/expired session or invalid credentials; 403 untrusted Origin for account mutations; 409 duplicate email; 422 invalid profile/password. No password is included in a successful response. Password recovery and verification emails are not implemented.
 
 ## Location and live outdoor navigation

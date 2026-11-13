@@ -29,7 +29,7 @@ async def agent_health():
     """Is the agent's text model (Nemotron) reachable and installed?"""
     settings = get_settings()
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
+        async with httpx.AsyncClient(timeout=5, trust_env=False) as client:
             r = await client.get(f"{settings.ollama_base_url.rstrip('/')}/api/tags")
             r.raise_for_status()
         names = {m["name"] for m in r.json()["models"]}

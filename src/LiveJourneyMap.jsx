@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
-export default function LiveJourneyMap({ location, destination, geometry, onDestination, focus }) {
+export default function LiveJourneyMap({ location, destination, geometry, onDestination, focus, roadOverlay }) {
   const container = useRef(null);
   const map = useRef(null);
   const locationMarker = useRef(null);
   const accuracyCircle = useRef(null);
   const destinationMarker = useRef(null);
   const routeLayer = useRef(null);
+  const roadLayer = useRef(null);
   const callback = useRef(onDestination);
   useEffect(() => { callback.current = onDestination; }, [onDestination]);
   const [follow, setFollow] = useState(true);
@@ -62,6 +63,23 @@ export default function LiveJourneyMap({ location, destination, geometry, onDest
       queueMicrotask(() => setFollow(false));
     }
   }, [ready, geometry]);
+
+  useEffect(() => {
+    if (!ready || !map.current) return;
+    if (roadLayer.current) { roadLayer.current.remove(); roadLayer.current = null; }
+    if (roadOverlay) {
+      try {
+        roadLayer.current = window.L.geoJSON(roadOverlay, {
+          style: { color: "#b45309", weight: 4, dashArray: "5,5" },
+          onEachFeature: (feature, layer) => {
+            const text = document.createElement("span");
+            text.textContent = String(feature.properties?.title || feature.properties?.description || "Live Roads incident; impact unverified");
+            layer.bindPopup(text);
+          },
+        }).addTo(map.current);
+      } catch { console.warn("The road overlay could not be displayed."); }
+    }
+  }, [ready, roadOverlay]);
 
   useEffect(() => {
     if (ready && focus && map.current) {
