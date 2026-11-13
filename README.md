@@ -2,6 +2,77 @@
 
 Mobile-friendly hospital journey planning prototype for the NVIDIA Hack for Impact hackathon.
 
+## Test the app: quick start (Windows PowerShell)
+
+You need **three PowerShell windows**, all left open. Replace `sparkX` and `user11` with your
+assigned Spark and login. On Mac/Linux, use `source .venv/bin/activate` and `cp` instead of
+`.venv\Scripts\Activate.ps1` and `copy`.
+
+**Window 1: SSH tunnel to the DGX Spark** (no output means it's working):
+
+```powershell
+ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:11435:127.0.0.1:11434 user11@sparkX.local
+```
+
+**Window 2: backend (FastAPI on port 8000).** Run from the repository root, first time only:
+
+```powershell
+cd backend
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-dev.txt
+copy .env.example .env
+notepad .env
+```
+
+In Notepad, set `OLLAMA_BASE_URL=http://127.0.0.1:11435` and save. Then run the tests and start
+the API:
+
+```powershell
+python -m pytest -q
+python -m uvicorn app.main:app --port 8000 --reload
+```
+
+If PowerShell refuses to run `Activate.ps1`, run
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, then try again. On later runs, only
+`cd backend`, `.venv\Scripts\Activate.ps1` and the `uvicorn` line are needed.
+
+**Window 3: frontend (React + Vite on port 5173).** Run from the repository root:
+
+```powershell
+npm install
+npm run dev
+```
+
+**Check it works:**
+
+| Open in a browser | What you should see |
+| --- | --- |
+| http://localhost:8000/health | `{"status":"ok", ...}` |
+| http://localhost:8000/api/v1/agent/health | `"status":"available"` if Nemotron is reachable through the tunnel |
+| http://localhost:8000/docs | Interactive API docs for every route |
+| http://localhost:5173/agent.html | **AccessRoute agent**: Margaret's journey to the Royal Hallamshire |
+| http://localhost:5173/ | Appointment upload, saved profiles, settings and live GPS map |
+
+**Demo flow on `agent.html`:**
+
+1. Click **Plan my journey**. Bus 95 should be recommended.
+2. Open **What the agent did** to see Nemotron's tool calls.
+3. Select **Pavement blocked on Beech Hill Road**, then click **Re-plan with these problems**.
+4. Click **Draft a blocked-pavement report**.
+
+The header badge says whether the local AI is in use. If it says "not reachable", the safety rules
+still plan the journey. Check window 1 and `OLLAMA_BASE_URL`.
+
+**Optional API check from PowerShell**, with the backend running:
+
+```powershell
+$body = @{ origin_id = "walkley"; appointment = @{ department = "Neuro-Rehabilitation Outpatients"; arrive_by = "2026-11-16T10:15:00+00:00"; confirmed_by_user = $true }; needs = @{ mobility_aid = "powered_wheelchair" }; use_model = $true } | ConvertTo-Json -Depth 5
+(Invoke-RestMethod -Uri "http://localhost:8000/api/v1/agent/plan" -Method Post -ContentType "application/json" -Body $body).recommendation
+```
+
+See [AGENT.md](AGENT.md) for how the agent works, the demo script and data sources.
+
 ## What is implemented
 
 - FastAPI backend with interactive API documentation at `/docs`.
@@ -14,7 +85,9 @@ Mobile-friendly hospital journey planning prototype for the NVIDIA Hack for Impa
 - Disruption reassessment and a template travel-support draft; nothing is sent.
 - Three clearly labelled fictional route fixtures for frontend development.
 
-**Current boundary:** transport routes, times, entrances and access flags are simulated. They are not real travel advice. Only `demo-home` and `northern-general-demo` are supported. Live transport, verified hospital access data, model-directed tool calling, and full model-directed agent orchestration still need implementation. The React frontend and a browser-only staff preview are implemented; the latter does not send requests or dispatch transport. Do not describe the current deterministic route checker as a completed autonomous agent.
+**Merged application:** `/` provides appointment upload, profiles, settings, live GPS and optional outdoor directions; `/agent.html` provides the Royal Hallamshire model-directed agent demonstration. Both are built by `npm run build` and use the same `/backend` Vite proxy. The frontend pages link to one another but do not share appointment/profile state yet. Their access schemas and hospital scenarios remain separate.
+
+**Current boundary:** appointment-journey routes, times, gradients and access flags are simulated, not real travel advice. The original journey routes support `demo-home` / `northern-general-demo`; the agent routes use the Royal Hallamshire fixtures. Live weather is optional, live outdoor wheelchair directions require an ORS key, and no live bus feed is connected. The agent can use model-directed tool calling when Spark is configured; rules-only fallback is explicitly labelled. The browser-only staff preview does not send requests or dispatch transport. Real Spark inference still needs deployment verification.
 
 ## Start the backend
 
@@ -145,7 +218,6 @@ python -m pytest -q
 ```
 
 Tests cover access constraints, missing access evidence, disruption fallback, departure feasibility, required confirmation/timezones, invalid uploads and the extraction HTTP contract using a stub. They do not exercise a real model, real transport service or GPU.
-=======
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
@@ -162,4 +234,3 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the Oxlint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
->>>>>>> efc26a7 (Add initial React frontend screens with Margaret's sample data)

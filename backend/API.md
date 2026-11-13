@@ -6,6 +6,10 @@ All successful responses below return HTTP 200. POST/PUT requests use `applicati
 
 Interactive schema: `/docs`. Machine-readable schema: `/openapi.json`.
 
+## Royal Hallamshire agent routes (merged branch)
+
+The separate `/agent.html` page uses `/api/v1/agent/health`, `/context`, `/plan`, `/reassess` and `/draft` under the `/api/v1/agent` prefix. See [AGENT.md](../AGENT.md) and `/docs` for the different request/response schemas. The agent uses Royal Hallamshire fixtures rather than the original Northern General journey schema. This merge preserves both interfaces without silently treating their preferences or hospital IDs as interchangeable.
+
 ## 1. Connection indicator — GET /health
 
 Call on app startup or from a connection-check button. No body.
