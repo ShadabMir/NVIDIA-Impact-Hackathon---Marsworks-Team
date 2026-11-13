@@ -3,7 +3,8 @@
 //
 // Usage from any component:
 //   import { speak, stopSpeaking } from "./tts/speak";
-//   const source = await speak("Your route has changed.");   // "spark" | "browser" | "none"
+//   const source = await speak("Your route has changed.");
+//   // "spark" | "browser" | "browser-online" | "no-english" | "none"
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -24,18 +25,51 @@ export function stopSpeaking() {
   }
 }
 
-function speakWithBrowser(text) {
+// Browsers load their voice list asynchronously; the first call often returns an empty list.
+function loadVoices(timeoutMs = 1500) {
+  const synth = window.speechSynthesis;
+  const voices = synth.getVoices();
+  if (voices.length) return Promise.resolve(voices);
+  return new Promise((resolve) => {
+    const done = () => {
+      synth.removeEventListener("voiceschanged", done);
+      clearTimeout(timer);
+      resolve(synth.getVoices());
+    };
+    const timer = setTimeout(done, timeoutMs);
+    synth.addEventListener("voiceschanged", done);
+  });
+}
+
+// Prefer British English, then any English. Prefer voices installed on the device, so the
+// text is not sent to an online voice service.
+export function pickEnglishVoice(voices) {
+  const lang = (v) => (v.lang || "").replace("_", "-").toLowerCase();
+  const tests = [
+    (v) => lang(v) === "en-gb" && v.localService,
+    (v) => lang(v).startsWith("en") && v.localService,
+    (v) => lang(v) === "en-gb",
+    (v) => lang(v).startsWith("en"),
+  ];
+  for (const test of tests) {
+    const voice = voices.find(test);
+    if (voice) return voice;
+  }
+  return null;
+}
+
+async function speakWithBrowser(text) {
   if (typeof window === "undefined" || !window.speechSynthesis) return "none";
+  const voice = pickEnglishVoice(await loadVoices());
+  // Never fall back to the system default voice: on a non-English system it would read
+  // English text with, for example, a Chinese voice.
+  if (!voice) return "no-english";
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "en-GB";
-  const voices = window.speechSynthesis.getVoices();
-  // Prefer a voice installed on the device so nothing is sent to a cloud voice service.
-  const local = voices.find((v) => v.lang === "en-GB" && v.localService) ||
-    voices.find((v) => v.lang.startsWith("en") && v.localService);
-  if (local) utterance.voice = local;
+  utterance.voice = voice;
+  utterance.lang = voice.lang;
   utterance.rate = 0.95;
   window.speechSynthesis.speak(utterance);
-  return "browser";
+  return voice.localService ? "browser" : "browser-online";
 }
 
 export async function speak(text, { preferSpark = true, timeoutMs = 20000 } = {}) {

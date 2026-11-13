@@ -14,7 +14,10 @@ function readAutoSetting() {
 
 const SOURCE_TEXT = {
   spark: "Reading aloud with the speech model on the DGX Spark.",
-  browser: "Reading aloud with this device's voice.",
+  browser: "Reading aloud with this device's English voice.",
+  "browser-online": "Reading aloud with an online English voice from your browser.",
+  "no-english":
+    "No English voice is installed on this device, so nothing was read. On Windows: Settings, Time & language, Speech, Add voices, English (United Kingdom).",
   none: "This browser cannot read aloud. Use your screen reader instead.",
 };
 
@@ -118,17 +121,26 @@ export default function ListenBar({ screenKey, script, alertText }) {
 
 // Small Listen button for one section (an alert, a route step, the appointment details).
 export function ListenButton({ text, label = "Listen", className = "" }) {
+  const [problem, setProblem] = useState("");
   return (
-    <button
-      type="button"
-      className={`listen-btn listen-btn-inline ${className}`}
-      onClick={(e) => {
-        e.stopPropagation(); // don't trigger the card's own click (e.g. map zoom)
-        speak(text);
-      }}
-      aria-label={`${label}: read aloud`}
-    >
-      <span aria-hidden="true">🔊</span> {label}
-    </button>
+    <>
+      <button
+        type="button"
+        className={`listen-btn listen-btn-inline ${className}`}
+        onClick={async (e) => {
+          e.stopPropagation(); // don't trigger the card's own click (e.g. map zoom)
+          const source = await speak(text);
+          setProblem(source === "no-english" || source === "none" ? SOURCE_TEXT[source] : "");
+        }}
+        aria-label={`${label}: read aloud`}
+      >
+        <span aria-hidden="true">🔊</span> {label}
+      </button>
+      {problem && (
+        <p className="listen-status" role="status">
+          {problem}
+        </p>
+      )}
+    </>
   );
 }

@@ -9,7 +9,10 @@ const SAMPLES = [
 
 const SOURCE_LABEL = {
   spark: "Spoken by the speech model on the DGX Spark",
-  browser: "Spoken by the browser voice (Spark speech model not reachable)",
+  browser: "Spoken by this device's English voice (Spark speech model not reachable)",
+  "browser-online": "Spoken by an online English voice from the browser (Spark speech model not reachable)",
+  "no-english":
+    "Not spoken: no English voice is installed on this device. On Windows: Settings → Time & language → Speech → Add voices → English (United Kingdom).",
   none: "This browser cannot speak",
 };
 
