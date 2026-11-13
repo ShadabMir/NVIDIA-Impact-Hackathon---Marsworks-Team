@@ -316,6 +316,73 @@ body {
   }
 }
 
+/* Bottom tabs: icon above a short label, never wraps, 56px tall */
+.step-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 56px;
+  min-width: 0;
+  padding: 4px 2px;
+  border: 2px solid #d8dde0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #212b32;
+  font-weight: 700;
+}
+.step-tab-icon {
+  flex: 0 0 auto;
+}
+.step-tab-label {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.step-tab-active {
+  background: #005eb8;
+  border-color: #005eb8;
+  color: #ffffff;
+}
+.step-tab:focus-visible,
+.staff-link:focus-visible {
+  outline: 4px solid #ffb81c;
+  outline-offset: 2px;
+}
+.staff-link {
+  min-height: 44px;
+  font-weight: 600;
+  color: #4c6272;
+}
+
+/* Folded sections for extra detail (map options, roadworks) */
+.map-options {
+  background: #ffffff;
+  border: 2px solid #d8dde0;
+  border-radius: 12px;
+}
+.map-options > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  font-weight: 700;
+  color: #005eb8;
+  cursor: pointer;
+}
+.map-options > summary:focus-visible {
+  outline: 4px solid #ffb81c;
+  outline-offset: 2px;
+}
+.map-options[open] > summary {
+  border-bottom: 1px solid #d8dde0;
+}
+.map-options > .qgis-layer-panel,
+.map-options > .liveroads-card {
+  border-radius: 0 0 10px 10px;
+  border: 0;
+}
+
 .liveroads-card {
   background: #ffffff;
   border: 2px solid #cbd5e1;

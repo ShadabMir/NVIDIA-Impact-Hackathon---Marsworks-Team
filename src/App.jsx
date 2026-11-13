@@ -2,6 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import "./App.css";
 import ListenBar, { ListenButton } from "./tts/ListenBar";
 import {
+  IconAlertTriangle,
+  IconFileText,
+  IconMap,
+  IconWheelchair,
+} from "@tabler/icons-react";
+import HelpButton from "./emergency/HelpButton";
+import StaffAlerts from "./emergency/StaffAlerts";
+import {
   alertScript,
   appointmentScript,
   routeStepScript,
@@ -310,7 +318,7 @@ function LiveWeatherBanner({ weather, onRefresh, loadingWeather }) {
       <div className="d-flex justify-content-between align-items-start gap-2">
         <div>
           <span className="badge bg-info text-dark fw-bold mb-1">
-            LIVE SHEFFIELD WEATHER (OPEN-METEO)
+            Sheffield weather now
           </span>
           <div className="d-flex align-items-center gap-2 mt-1">
             <span className="fs-3">{wmo.icon}</span>
@@ -322,8 +330,8 @@ function LiveWeatherBanner({ weather, onRefresh, loadingWeather }) {
                 </span>
               </div>
               <div className="small text-white-50">
-                Precip: {weather.precipitation} mm • Wind: {weather.wind_speed_10m} km/h
-                (Gusts {weather.wind_gusts_10m} km/h)
+                Rain: {weather.precipitation} mm • Wind: {weather.wind_speed_10m} km/h
+                (gusts {weather.wind_gusts_10m} km/h)
               </div>
             </div>
           </div>
@@ -343,21 +351,23 @@ function LiveWeatherBanner({ weather, onRefresh, loadingWeather }) {
       <div className="mt-2 pt-2 border-top border-secondary small">
         {isSlipperyOrWet ? (
           <div className="text-warning fw-bold">
-            ⚠️ Wet Pavement Alert: Reduced wheelchair tyre braking traction on slopes
-            over 1-in-15. Avoid steep Walkley gradients.
+            ⚠️ Wet pavements: wheelchair brakes grip less on slopes. We will keep you
+            off steep hills.
           </div>
         ) : (
           <div className="text-info">
-            ✅ Dry Footway Conditions: Standard powered-wheelchair braking traction on
-            1-in-20 Bus 95 corridor.
+            ✅ Dry pavements: normal grip for your wheelchair on this route.
           </div>
         )}
         {isColdBatteryRisk && (
           <div className="text-warning small mt-1">
-            🔋 Cold Temperature Notice ({weather.temperature_2m}°C): Lithium/AGM
-            wheelchair battery capacity may drop by ~15% on uphill climbs.
+            🔋 Cold today ({Math.round(weather.temperature_2m)}°C): wheelchair batteries can
+            run down faster, especially uphill. Charge fully before you leave.
           </div>
         )}
+        <div className="text-white-50 mt-1" style={{ fontSize: "0.75rem" }}>
+          Weather data: Open-Meteo
+        </div>
       </div>
     </div>
   );
@@ -375,15 +385,18 @@ function LiveRoadsPanel({
   onPlotIncidentOnMap,
 }) {
   return (
+    <details className="map-options">
+      <summary>
+        Roadworks and closures nearby
+        {roadIncidents?.length ? ` (${roadIncidents.length})` : ""}
+      </summary>
     <div className="liveroads-card shadow-sm">
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
         <div>
           <span className="badge bg-warning text-dark fw-bold me-2">
-            🛣️ LIVE ROADS API
+            🛣️ Live Roads
           </span>
-          <span className="fw-bold small">
-            Live Roadworks, Closures & Incidents
-          </span>
+          <span className="fw-bold small">Roadworks, closures and incidents</span>
         </div>
 
         <div className="d-flex gap-1">
@@ -519,6 +532,7 @@ function LiveRoadsPanel({
         </div>
       </div>
     </div>
+    </details>
   );
 }
 
@@ -704,7 +718,7 @@ function QgisWebMap({
       })
         .addTo(map)
         .bindPopup(
-          "<b>QGIS Layer: streetworks_closures</b><br/>Beech Hill Rd footway width < 0.7m (Impassable)."
+          "<b>Pavement blocked</b><br/>Beech Hill Road: the pavement is narrower than 0.7 m, with no way round."
         )
         .openPopup();
       map.setView([53.3787, -1.4938], 16);
@@ -738,11 +752,19 @@ function QgisWebMap({
 
   return (
     <div className="d-flex flex-column gap-2">
+      <div
+        className="gmap-wrapper"
+        role="region"
+        aria-label="Map of your route. The steps below describe the same route in words."
+      >
+        <div ref={mapContainerRef} className="gmap-canvas" />
+      </div>
+
+      <details className="map-options">
+        <summary>Map options and layers</summary>
       <div className="qgis-layer-panel">
         <div className="d-flex justify-content-between align-items-center mb-2">
-          <span className="fw-bold text-info">
-            🗺️ QGIS Spatial Layers (CRS: EPSG:4326)
-          </span>
+          <span className="fw-bold text-info">🗺️ Map style</span>
           <div className="btn-group btn-group-sm">
             <button
               type="button"
@@ -762,7 +784,7 @@ function QgisWebMap({
               }`}
               style={{ fontSize: "0.72rem" }}
             >
-              Topo Contours
+              Hills
             </button>
             <button
               type="button"
@@ -772,7 +794,7 @@ function QgisWebMap({
               }`}
               style={{ fontSize: "0.72rem" }}
             >
-              OSM Street
+              Detailed
             </button>
           </div>
         </div>
@@ -784,7 +806,7 @@ function QgisWebMap({
               checked={visibleLayers.safe_corridor}
               onChange={() => toggleLayer("safe_corridor")}
             />
-            <span>🟢 Bus_95_Corridor</span>
+            <span>🟢 Your route</span>
           </label>
           <label className="d-flex align-items-center gap-1 cursor-pointer">
             <input
@@ -792,7 +814,7 @@ function QgisWebMap({
               checked={visibleLayers.steep_gradient_hazard}
               onChange={() => toggleLayer("steep_gradient_hazard")}
             />
-            <span>🔴 LiDAR_Slope_1in8</span>
+            <span>🔴 Steep hills</span>
           </label>
           <label className="d-flex align-items-center gap-1 cursor-pointer">
             <input
@@ -800,19 +822,19 @@ function QgisWebMap({
               checked={visibleLayers.live_roads_api}
               onChange={() => toggleLayer("live_roads_api")}
             />
-            <span>⚠️ LiveRoads_GeoJSON</span>
+            <span>⚠️ Roadworks</span>
           </label>
         </div>
 
         <div className="d-flex justify-content-between align-items-center pt-1 border-top border-secondary">
           <span className="text-white-50" style={{ fontSize: "0.72rem" }}>
-            Click any vector feature on map to inspect QGIS attributes
+            Tap anything on the map for details. Map data prepared in QGIS.
           </span>
           <label
             className="btn btn-sm btn-outline-info py-0 px-2"
             style={{ fontSize: "0.72rem" }}
           >
-            📂 Load QGIS .geojson
+            📂 Load map file (staff)
             <input
               type="file"
               accept=".geojson,.json"
@@ -822,10 +844,7 @@ function QgisWebMap({
           </label>
         </div>
       </div>
-
-      <div className="gmap-wrapper">
-        <div ref={mapContainerRef} className="gmap-canvas" />
-      </div>
+      </details>
 
       {selectedFeatureProps && (
         <div className="p-2 bg-dark text-light rounded-3 border border-info small d-flex justify-content-between align-items-center">
@@ -1148,11 +1167,11 @@ export default function App() {
         {/* Step Progress Indicator */}
         <div className="d-flex justify-content-between align-items-center mb-3 bg-white p-2 rounded-3 shadow-sm border">
           <span className="fw-bold text-primary small">
-            {step === 1 && "Step 1 of 4: Appointment Letter"}
-            {step === 2 && "Step 2 of 4: Your Access Needs"}
-            {step === 3 && "Step 3 of 4: Live Weather, Roads & QGIS Map"}
-            {step === 4 && "Step 4 of 4: Disruption Reassessment"}
-            {step === 5 && "Hospital Staff Prototype View"}
+            {step === 1 && "Step 1 of 4: Your letter"}
+            {step === 2 && "Step 2 of 4: Your needs"}
+            {step === 3 && "Step 3 of 4: Your route"}
+            {step === 4 && "Step 4 of 4: Route alert"}
+            {step === 5 && "Hospital staff view"}
           </span>
           <span className="badge bg-secondary">Margaret, 67</span>
         </div>
@@ -1170,19 +1189,19 @@ export default function App() {
             <div className="card border-0 shadow-sm">
               <div className="card-body">
                 <span className="badge bg-success-subtle text-success border border-success-subtle mb-2">
-                  🔒 Private Local Vision Model
+                  🔒 Private: read on our own computer, not online
                 </span>
-                <h2 className="h5 fw-bold">1. Upload Appointment Letter</h2>
+                <h2 className="h5 fw-bold">Add your appointment letter</h2>
                 <p className="text-muted small mb-3">
-                  Take a photo or upload your NHS letter. Our local AI extracts
-                  your clinic and matches the right step-free entrance.
+                  Take a photo of your hospital letter. We will read the date, time
+                  and clinic for you, and find the right step-free entrance.
                 </p>
 
                 <label className="btn btn-outline-primary btn-accessible w-100 mb-2">
                   📷{" "}
                   {selectedFile
                     ? `Loaded: ${selectedFile}`
-                    : "Upload or Take Photo of Letter"}
+                    : "Take or choose a photo of your letter"}
                   <input
                     type="file"
                     accept="image/*,.pdf"
@@ -1193,7 +1212,7 @@ export default function App() {
 
                 {loading && (
                   <div className="alert alert-info py-2 small mb-0">
-                    Reading appointment letter with local Ollama VLM...
+                    Reading your letter…
                   </div>
                 )}
               </div>
@@ -1203,7 +1222,7 @@ export default function App() {
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
                   <h3 className="h6 fw-bold text-primary mb-0">
-                    Confirm Extracted Details
+                    Are these details right?
                   </h3>
                   <ListenButton
                     text={appointmentScript(data)}
@@ -1263,7 +1282,7 @@ export default function App() {
                   onClick={() => setStep(2)}
                   className="btn btn-primary btn-accessible w-100"
                 >
-                  Confirm Details & Set Access Needs →
+                  Yes, these are right →
                 </button>
               </div>
             </div>
@@ -1274,29 +1293,28 @@ export default function App() {
         {step === 2 && (
           <div className="card border-0 shadow-sm">
             <div className="card-body">
-              <h2 className="h5 fw-bold mb-1">2. Practical Access Needs</h2>
+              <h2 className="h5 fw-bold mb-1">What do you need on your journey?</h2>
               <p className="text-muted small mb-3">
-                Tell us what barriers to avoid on Sheffield’s hills and streets.
+                We use this to avoid hills, steps and distances that do not work for
+                you.
               </p>
 
               <div className="mb-3">
-                <label className="form-label-accessible">Mobility Aid</label>
+                <label className="form-label-accessible">How do you get around?</label>
                 <select
                   className="form-select form-select-lg-accessible"
                   value={data.accessNeeds.mobilityAid}
                   onChange={(e) => updateAccess("mobilityAid", e.target.value)}
                 >
-                  <option value="powered_wheelchair">
-                    Powered Wheelchair (Post-Stroke)
-                  </option>
-                  <option value="manual_wheelchair">Manual Wheelchair</option>
-                  <option value="rollator">Walking Frame / Rollator</option>
+                  <option value="powered_wheelchair">Powered wheelchair</option>
+                  <option value="manual_wheelchair">Manual wheelchair</option>
+                  <option value="rollator">Walking frame or rollator</option>
                 </select>
               </div>
 
               <div className="mb-3">
                 <label className="form-label-accessible">
-                  Max Safe Hill Steepness
+                  How steep a hill can you manage?
                 </label>
                 <select
                   className="form-select form-select-lg-accessible"
@@ -1304,17 +1322,15 @@ export default function App() {
                   onChange={(e) => updateAccess("maxGradient", e.target.value)}
                 >
                   <option value="1:12">
-                    Avoid Steep Hills — Block 1-in-8 (12.5%)
+                    Gentle slopes are fine, but no steep hills
                   </option>
-                  <option value="1:15">
-                    Flat / Gentle Slopes Only (Max 1-in-15)
-                  </option>
+                  <option value="1:15">Flat or very gentle slopes only</option>
                 </select>
               </div>
 
               <div className="mb-3">
                 <label className="form-label-accessible">
-                  Max Distance Between Stops (Metres)
+                  Furthest you can go without a rest (metres)
                 </label>
                 <input
                   type="number"
@@ -1328,7 +1344,7 @@ export default function App() {
 
               <div className="mb-3">
                 <label className="form-label-accessible">
-                  Extra Time Needed for Ramps (Minutes)
+                  Extra time to get on and off buses and trams (minutes)
                 </label>
                 <input
                   type="number"
@@ -1354,7 +1370,7 @@ export default function App() {
                   className="form-check-label fw-bold"
                   htmlFor="stepFreeSwitch"
                 >
-                  Require 100% Step-Free & Dropped Kerbs
+                  I need step-free routes with dropped kerbs
                 </label>
               </div>
 
@@ -1362,7 +1378,7 @@ export default function App() {
                 onClick={handlePlanJourney}
                 className="btn btn-primary btn-accessible w-100 mb-2"
               >
-                {loading ? "Loading Live Feeds..." : "Open QGIS Route Map →"}
+                {loading ? "Finding your route…" : "Show my route →"}
               </button>
               <button
                 onClick={() => setStep(1)}
@@ -1377,6 +1393,25 @@ export default function App() {
         {/* ================= SCREEN 3: LIVE WEATHER + LIVE ROADS + QGIS MAP ================= */}
         {step === 3 && (
           <div className="d-flex flex-column gap-3">
+            {/* Journey summary first: the answer the patient needs */}
+            <div className="card border-success border-2 shadow-sm">
+              <div className="card-body py-3">
+                <div className="d-flex justify-content-between align-items-center mb-1 gap-2">
+                  <span className="badge bg-success">✅ Suits your needs</span>
+                  <span className="fw-bold text-success small">
+                    Gentle slopes only
+                  </span>
+                </div>
+                <h2 className="h5 fw-bold mb-1">
+                  Leave home at {data.steps[0]?.time} · Bus 95
+                </h2>
+                <p className="small text-muted mb-0">
+                  We avoided the steep hill on Howard Road (1 in 8). It is shown in
+                  red on the map.
+                </p>
+              </div>
+            </div>
+
             {/* 1. Open-Meteo Live Weather & Wheelchair Traction Card */}
             <LiveWeatherBanner
               weather={weather}
@@ -1407,31 +1442,12 @@ export default function App() {
               }
             />
 
-            <div className="card border-success border-2 shadow-sm">
-              <div className="card-body py-3">
-                <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="badge bg-success">
-                    ✅ VERIFIED BY QGIS SLOPE CHECK
-                  </span>
-                  <span className="fw-bold text-success small">
-                    Max Slope 1-in-20 (5.0%)
-                  </span>
-                </div>
-                <h2 className="h5 fw-bold mb-1">
-                  Leave Home at 09:35 AM (Stagecoach Bus 95)
-                </h2>
-                <p className="small text-muted mb-0">
-                  Red polygon on map marks the <strong>1-in-8 (12.5%)</strong>{" "}
-                  Howard Rd slope rejected by your wheelchair profile.
-                </p>
-              </div>
-            </div>
-
             <div className="card border-0 shadow-sm">
               <div className="card-body">
-                <h3 className="h6 fw-bold mb-2">
-                  Turn-by-Turn Nodes (Tap to Zoom GIS Map)
-                </h3>
+                <h3 className="h6 fw-bold mb-1">Your journey, step by step</h3>
+                <p className="small text-muted mb-2">
+                  Tap a step to see it on the map.
+                </p>
 
                 {data.steps.map((s, index) => (
                   <div
@@ -1449,7 +1465,7 @@ export default function App() {
                         {s.icon} {s.time} — {s.title}
                       </div>
                       <span className="badge bg-white text-primary border">
-                        Zoom Node
+                        Show on map
                       </span>
                     </div>
                     <div className="small mt-1">{s.detail}</div>
@@ -1468,8 +1484,8 @@ export default function App() {
               className="btn btn-danger btn-accessible w-100 shadow"
             >
               {loading
-                ? "Reassessing GIS Layers..."
-                : "🚨 Simulate Live Pavement Disruption Layer →"}
+                ? "Checking your route…"
+                : "Demo: simulate a blocked pavement →"}
             </button>
           </div>
         )}
@@ -1482,10 +1498,10 @@ export default function App() {
               role="alert"
             >
               <div className="badge bg-danger mb-1">
-                QGIS + LIVE ROADS ALERT — {data.disruption.time}
+                Problem on your route · {data.disruption.time}
               </div>
               <h2 className="h5 fw-bold mb-1">
-                Blocked Pavement: {data.disruption.location}
+                Pavement blocked: {data.disruption.location}
               </h2>
               <p className="small mb-2">{data.disruption.alert}</p>
               <ListenButton text={alertScript(data)} label="Listen to alert" />
@@ -1522,13 +1538,11 @@ export default function App() {
 
             <div className="card border-0 shadow-sm">
               <div className="card-body">
-                <h3 className="h6 fw-bold mb-2">
-                  Agent Reassessment Against Margaret’s Profile
-                </h3>
+                <h3 className="h6 fw-bold mb-2">What we checked for you</h3>
                 {data.disruption.reassessmentLog.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-2 mb-2 bg-light rounded border font-monospace small"
+                    className="p-2 mb-2 bg-light rounded border small"
                   >
                     {item}
                   </div>
@@ -1539,11 +1553,14 @@ export default function App() {
             <div className="card border-primary border-2 shadow-sm">
               <div className="card-body">
                 <span className="badge bg-primary mb-2">
-                  FALLBACK ACTION READY
+                  We can ask the hospital for help
                 </span>
                 <h3 className="h5 fw-bold">
-                  Drafted Hospital Travel Support Request
+                  Request for accessible transport (draft)
                 </h3>
+                <p className="small text-muted mb-2">
+                  Check it before sending. Nothing is sent without you.
+                </p>
                 <div className="p-3 bg-light rounded-3 border small mb-3">
                   <div className="mb-1">
                     <strong>To:</strong> {data.disruption.supportDraft.to}
@@ -1553,11 +1570,11 @@ export default function App() {
                     {data.disruption.supportDraft.patient}
                   </div>
                   <div className="mb-1">
-                    <strong>Access Barrier:</strong>{" "}
+                    <strong>The problem:</strong>{" "}
                     {data.disruption.supportDraft.summary}
                   </div>
                   <div>
-                    <strong>Requested Support:</strong>{" "}
+                    <strong>Help needed:</strong>{" "}
                     <span className="fw-bold text-primary">
                       {data.disruption.supportDraft.actionRequested}
                     </span>
@@ -1568,7 +1585,7 @@ export default function App() {
                   onClick={() => setStep(5)}
                   className="btn btn-success btn-accessible w-100"
                 >
-                  Send Request & Open Staff Dashboard →
+                  Send request to the hospital →
                 </button>
               </div>
             </div>
@@ -1578,6 +1595,8 @@ export default function App() {
         {/* ================= SCREEN 5: STAFF DASHBOARD ================= */}
         {step === 5 && (
           <div className="d-flex flex-column gap-3">
+            {/* Live Help alerts from patients */}
+            <StaffAlerts />
             <div className="card border-0 shadow-sm bg-dark text-white">
               <div className="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
@@ -1662,26 +1681,72 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* Staff view lives outside the patient tabs */}
+        <div className="text-center my-3">
+          {step === 5 ? (
+            <button
+              type="button"
+              onClick={() => setStep(4)}
+              className="btn btn-outline-primary btn-accessible"
+            >
+              ← Back to the patient app
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setStep(5)}
+              className="btn btn-link staff-link"
+            >
+              Hospital staff view
+            </button>
+          )}
+        </div>
       </main>
 
-      {/* Bottom Nav */}
-      <nav className="step-nav-bar">
+      {/* Bottom Nav: patient screens only. The staff view is linked separately. */}
+      {/* Help button on every patient screen (not on the staff view) */}
+      {step !== 5 && (
+        <HelpButton
+          context={{
+            patientName: data.extraction.patientName,
+            hospital: data.extraction.hospital,
+            department: data.extraction.department,
+            arriveBy: `${data.extraction.arrivalTime}, ${data.extraction.date}`,
+            screen: ["", "Letter", "My needs", "Route", "Alerts"][step],
+            routeStep: (() => {
+              const s = data.steps.find((x) => x.id === activeStepId);
+              return s ? `${s.time}: ${s.title}` : "";
+            })(),
+            needs: [
+              data.accessNeeds.mobilityAid.replace("_", " "),
+              data.accessNeeds.stepFree ? "step-free" : null,
+              `rest every ${data.accessNeeds.maxDistanceMeters} m`,
+            ]
+              .filter(Boolean)
+              .join(", "),
+          }}
+          onReplan={() => setStep(4)}
+        />
+      )}
+
+      <nav className="step-nav-bar" aria-label="Journey steps">
         <div className="d-flex justify-content-center gap-1 max-w-wide mx-auto">
           {[
-            { id: 1, label: "1. Letter" },
-            { id: 2, label: "2. Access" },
-            { id: 3, label: "3. QGIS Map" },
-            { id: 4, label: "4. Alert" },
-            { id: 5, label: "5. Staff" },
+            { id: 1, icon: IconFileText, label: "Letter" },
+            { id: 2, icon: IconWheelchair, label: "My needs" },
+            { id: 3, icon: IconMap, label: "Route" },
+            { id: 4, icon: IconAlertTriangle, label: "Alerts" },
           ].map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setStep(tab.id)}
-              className={`btn btn-sm fw-bold flex-fill py-2 ${
-                step === tab.id ? "btn-primary" : "btn-outline-secondary"
-              }`}
+              aria-current={step === tab.id ? "step" : undefined}
+              className={`step-tab flex-fill ${step === tab.id ? "step-tab-active" : ""}`}
             >
-              {tab.label}
+              <tab.icon className="step-tab-icon" size={24} stroke={1.75} aria-hidden="true" />
+              <span className="step-tab-label">{tab.label}</span>
             </button>
           ))}
         </div>
