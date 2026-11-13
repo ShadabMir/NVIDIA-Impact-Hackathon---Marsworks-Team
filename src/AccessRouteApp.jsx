@@ -529,10 +529,6 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
                 onReassess={agentReassess} onDraft={agentMakeDraft} busy={busy ? "working" : ""} draft={agentDraft} setDraft={setBothDrafts} /></section>
             : <p className="alert alert-info">Confirm your appointment and choose “Plan my journey” to get the AI agent's plan.</p>}
           </details>
-          <details className="card p-3 mt-3"><summary>Advanced demonstration layers</summary>
-            <p className="alert alert-warning small mt-2">Fictional reference layers, not the current route.</p>
-            <AdvancedMap geojsonData={geoJson} onImportGeoJson={setGeoJson} focusTarget={null} showDisruption={false} />
-          </details>
         </div>}
 
         {step === 4 && <section className="card shadow-sm"><div className="card-body"><h2 className="h4">Travel support</h2><p>Review the simulated disruption and prepare a message. No request is sent from this prototype.</p>
