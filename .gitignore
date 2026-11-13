@@ -11,6 +11,7 @@ node_modules/
 dist/
 uploads/
 *.log
+.cache/
 =======
 # Logs
 logs
