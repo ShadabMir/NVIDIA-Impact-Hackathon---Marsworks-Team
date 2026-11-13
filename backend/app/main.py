@@ -16,6 +16,7 @@ from app.profiles import router as profile_router
 from app.navigation import router as navigation_router
 from app.workspace import router as workspace_router
 from app.tts import router as tts_router
+from app.voice import router as voice_router
 from app.services.sheffield import NOTICE as SHEFFIELD_NOTICE
 
 settings = get_settings()
@@ -32,6 +33,7 @@ app.include_router(profile_router)
 app.include_router(navigation_router)
 app.include_router(agent_router)
 app.include_router(workspace_router)
+app.include_router(voice_router)  # voice input for the appointment form (/api/v1/appointments/voice)
 app.include_router(tts_router)  # text-to-speech (/api/v1/tts); the UI falls back to the browser voice
 
 

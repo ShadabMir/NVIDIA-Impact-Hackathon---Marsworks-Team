@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     live_weather: bool = True
     # Keep the model loaded between agent calls (Ollama keep_alive). "0" unloads after every call.
     ollama_keep_alive: str = "30m"
+    # Speech-to-text service (spark/asr_server.py). From a laptop: the SSH tunnel to the Spark, e.g. http://127.0.0.1:9101
+    asr_base_url: str = ""
+    asr_timeout_seconds: float = Field(default=60, gt=0, le=300)
 
     @property
     def allowed_origins(self) -> list[str]:

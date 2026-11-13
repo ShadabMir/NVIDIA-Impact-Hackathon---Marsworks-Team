@@ -1,0 +1,11 @@
+/* Voice input (src/voice/VoiceInput.jsx) */
+.voice-input { border: 2px solid #005eb8; }
+.voice-button { font-size: 1.15rem; }
+.voice-dot { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 50%; background: #d5281b; margin-right: 0.3rem; animation: voice-pulse 1s infinite; }
+@keyframes voice-pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .voice-dot { animation: none; } }
+.voice-meter { height: 0.75rem; background: #e8edee; border-radius: 0.4rem; overflow: hidden; max-width: 24rem; }
+.voice-meter span { display: block; height: 100%; background: #007f3b; transition: width 80ms linear; }
+.voice-found { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.4rem 1rem; margin-bottom: 0.75rem; }
+.voice-found dt { font-weight: 400; font-size: 0.85rem; color: #4c6272; }
+.voice-found dd { font-weight: 700; margin: 0; }

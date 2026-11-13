@@ -7,7 +7,8 @@ hackathon (Public Services track).
 Margaret, 67, uses a powered wheelchair and lives in Walkley, one of Sheffield's steepest
 areas. The app takes her from appointment letter to a safe journey:
 
-1. **Read the letter:** a photo is read by a vision model on the Spark.
+1. **Read the letter, or say it:** a photo is read by a vision model on the Spark, or the details can
+   be spoken (Whisper on the Spark, then Nemotron).
 2. **Use her saved profile:** mobility aid, slope limit and distances.
 3. **Plan the journey with an AI agent:**
    - Nemotron decides what to check: entrance, routes, weather, roadworks, trams and buses,
@@ -49,6 +50,7 @@ In Notepad, set these values and save:
 | `OLLAMA_AGENT_MODEL` | `nemotron-3.5-lightning:30b` or `nemotron-3-nano:30b` | The journey agent |
 | `OLLAMA_MODEL` | `qwen3.6:35b-a3b` | Reading appointment letters (the only model that reads images) |
 | `ORS_API_KEY` | your openrouteservice key (optional) | Wheelchair directions on the map |
+| `ASR_BASE_URL` | `http://127.0.0.1:9101` (optional) | Voice input: Whisper on the Spark ([docs/VOICE.md](docs/VOICE.md)) |
 
 Then run the tests and start the API:
 
@@ -178,6 +180,7 @@ Browser (React, Vite :5173) ──/backend proxy──► FastAPI :8000 ──SS
 | Accounts and profile | Register/sign in, mobility aid, access presets, saved appointment | `profiles.py`, `workspace.py` (SQLite) |
 | Map and location | GPS, address search (OpenStreetMap), wheelchair directions (openrouteservice), QGIS demo layers | `navigation.py`, `src/LiveJourneyMap.jsx`, `src/App.jsx` |
 | Live conditions | Current weather (Open-Meteo), road incidents (Live Roads) | `src/LiveConditions.jsx` |
+| Voice input | Speak the appointment details; Whisper on the Spark GPU, then Nemotron extracts the fields | `backend/app/voice.py`, `spark/asr_server.py`, `src/voice/`, [VOICE.md](docs/VOICE.md) |
 | Read aloud | Speech model on the Spark if configured, else the browser's voice | `/api/v1/tts`, `src/tts/speak.js`, [TTS.md](backend/TTS.md) |
 
 **How the backend works** (agent logic, safety rules, data sources, and what happens on the Spark): [docs/BACKEND.md](docs/BACKEND.md). The API reference is in [backend/API.md](backend/API.md). Accessibility presets and their sources

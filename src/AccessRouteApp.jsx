@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import VoiceInput from "./voice/VoiceInput.jsx";
+import { describeDetails } from "./voice/describe.js";
+import { speak } from "./tts/speak.js";
 import { api, getPosition, londonArrival, MOBILITY_OPTIONS, presetFor } from "./api";
 import JourneyNavigation from "./JourneyNavigation";
 import LiveConditions from "./LiveConditions";
@@ -31,6 +34,11 @@ function nearestArea(point, origins) {
   }
   return best && best.km <= AREA_RADIUS_KM ? best : { id: NO_DATA_AREA, name: "Somewhere else", km: best?.km ?? null };
 }
+// Place names people may say, mapped to the agent's start areas.
+const SPOKEN_AREAS = {
+  walkley: ["walkley"], hillsborough: ["hillsborough"], "city-centre": ["city centre", "town centre", "interchange"],
+  "sheffield-station": ["station"], meadowhall: ["meadowhall"], rotherham: ["rotherham"],
+};
 const AGENT_EXTRAS = [
   ["needs_accessible_toilet", "I need an accessible toilet on the way"],
   ["needs_changing_places", "I need a Changing Places toilet"],
@@ -216,6 +224,24 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
       setModel(`Extraction completed: ${extracted.model}`);
       setMessage("Letter read. Check every field before continuing.");
     });
+  };
+
+  // Voice input: fill only what was heard, set the start area if a known place was named, read it back.
+  // Nothing is planned until the user checks the form and ticks the confirmation box.
+  const applyVoice = result => {
+    const heard = result.details;
+    [["hospital_id", heard.hospital_id], ["department", heard.department], ["date", heard.date],
+      ["arrival", heard.arrival], ["origin", heard.origin]]
+      .forEach(([key, value]) => { if (value) changeAppointment(key, value); });
+    const spoken = (heard.origin || "").toLowerCase();
+    const area = Object.entries(SPOKEN_AREAS).find(([, words]) => words.some(word => spoken.includes(word)));
+    if (area && agentCtx?.origins.some(origin => origin.id === area[0])) {
+      setAreaId(area[0]); setAreaNote(`Starting area set from what you said (${heard.origin}). Change it if needed.`);
+    }
+    setExtractionWarnings(result.warnings);
+    setMessage("We filled in what we heard. Please check every field, then tick the box to confirm.");
+    const summary = describeDetails(heard);
+    if (summary) speak(`I heard: ${summary}. Please check the form, then tick the box to confirm.`).catch(() => {});
   };
 
   const buildAgentRequest = () => {
@@ -417,6 +443,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
         <nav className="journey-tabs" aria-label="Journey steps">{["1. Appointment", "2. Access needs", "3. Plan & map", "4. Support", "Staff demo"].map((label, index) => <button key={label} className={`btn ${step === index + 1 ? "btn-primary" : "btn-outline-secondary"}`} aria-current={step === index + 1 ? "step" : undefined} onClick={() => setStep(index + 1)}>{label}</button>)}</nav>
 
         {step === 1 && <section className="card shadow-sm"><div className="card-body"><h2 className="h4">Your appointment</h2><p>Upload a photograph, or enter the details yourself. The initial date and department below are examples.</p>
+          <VoiceInput disabled={busy} onApply={applyVoice} />
           <Field label="Appointment letter (JPEG or PNG, up to 10 MB)"><input className="form-control" type="file" accept="image/jpeg,image/png" disabled={busy} onChange={upload} /></Field>
           {filename && <p className="small">Selected: {filename}</p>}{extractionWarnings.length > 0 && <ul className="alert alert-warning">{extractionWarnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>}
           <form onSubmit={event => { event.preventDefault(); if (confirmed) setStep(2); }}>

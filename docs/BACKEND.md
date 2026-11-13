@@ -62,6 +62,7 @@ relative to the repository root.
 | `app/profiles.py` | Accounts, sessions, profile, access presets (SQLite) | `/api/v1/auth/*`, `/api/v1/profile`, `/api/v1/access/defaults` |
 | `app/workspace.py` | Saved appointment form per user | `/api/v1/workspace` |
 | `app/navigation.py` | Address search and wheelchair directions | `/api/v1/locations/*`, `/api/v1/navigation/route` |
+| `app/voice.py` | Voice input: audio to the speech service, then Nemotron extracts and checks the fields ([VOICE.md](VOICE.md)) | `/api/v1/appointments/voice`, `/voice/text`, `/voice/health` |
 | `app/tts.py` | Text to speech through a speech model on the Spark | `/api/v1/tts`, `/api/v1/tts/health` |
 | `app/config.py` | All settings, read from `backend/.env` | none |
 
@@ -269,6 +270,7 @@ Account changes from other websites are rejected by an origin check (`check_orig
 | Warm-up | Settings → Warm up, or `POST /agent/warmup` | same | Tiny prompt, `num_predict: 2`; loads the model into memory |
 | Letter extraction | Letter upload | `OLLAMA_MODEL` (Qwen; only it reads images) | `images` = base64 photo, `format` = JSON schema `AppointmentExtraction`, `temperature: 0` |
 | Health checks | On page load | none | `GET /api/tags`, which lists the installed models |
+| Speech to text (optional) | Voice input | Whisper large-v3-turbo, run by `spark/asr_server.py` on port 9100 (`ASR_BASE_URL`, second tunnel to 9101) | WAV upload; then Nemotron with a JSON schema for the fields |
 | Text to speech (optional) | Read aloud | Speech NIM on port 9000 (`TTS_BASE_URL`) | Text split into chunks of at most 450 characters; the WAV files are joined. Without it, the browser's own voice is used |
 
 Every call is a normal HTTP POST to `/api/chat`, with `stream: false`. A plan with AI on makes at
