@@ -180,7 +180,7 @@ Browser (React, Vite :5173) ──/backend proxy──► FastAPI :8000 ──SS
 | Live conditions | Current weather (Open-Meteo), road incidents (Live Roads) | `src/LiveConditions.jsx` |
 | Read aloud | Speech model on the Spark if configured, else the browser's voice | `/api/v1/tts`, `src/tts/speak.js`, [TTS.md](backend/TTS.md) |
 
-The API reference is in [backend/API.md](backend/API.md). Accessibility presets and their sources
+**How the backend works** (agent logic, safety rules, data sources, and what happens on the Spark): [docs/BACKEND.md](docs/BACKEND.md). The API reference is in [backend/API.md](backend/API.md). Accessibility presets and their sources
 are in [docs/accessibility-defaults.md](docs/accessibility-defaults.md).
 
 ## Data and privacy
