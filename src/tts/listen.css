@@ -19,6 +19,33 @@
   align-items: center;
 }
 
+.listen-bar-row:first-child {
+  flex-wrap: nowrap; /* Read and Stop always side by side */
+}
+
+/* Phones: keep the bar compact and let it scroll away, so it never covers a third of the
+   screen. Keyboard shortcuts are not relevant on touch screens, so their hint is hidden. */
+@media (max-width: 575.98px) {
+  .listen-bar {
+    position: static;
+    padding: 8px 10px 4px;
+  }
+  .listen-btn-primary {
+    flex: 1 1 auto;
+    min-height: 52px;
+    font-size: 1.05rem;
+  }
+  .listen-btn-stop {
+    min-height: 52px;
+  }
+  .listen-hint {
+    display: none;
+  }
+  .listen-bar-small {
+    margin-top: 4px;
+  }
+}
+
 .listen-bar-small {
   margin-top: 8px;
   justify-content: space-between;
@@ -60,7 +87,8 @@
 }
 
 .listen-btn-stop {
-  flex: 0 1 120px;
+  flex: 0 0 auto;
+  padding: 0 18px;
   min-height: 56px;
   font-size: 1.05rem;
   background: #ffffff;

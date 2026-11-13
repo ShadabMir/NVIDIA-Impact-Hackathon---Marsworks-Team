@@ -21,7 +21,11 @@ Use the NGC API key **on the Spark only**. Never commit it or put it in a `VITE_
 export NGC_API_KEY=<your key>
 echo "$NGC_API_KEY" | docker login nvcr.io -u '$oauthtoken' --password-stdin
 
+# Keep the downloaded model on disk, so a restart does not download it again
+mkdir -p ~/.cache/nim && chmod a+w ~/.cache/nim
+
 docker run -d --name chatterbox --runtime=nvidia --gpus '"device=0"' --shm-size=8GB \
+  -v ~/.cache/nim:/opt/nim/.cache \
   -e NGC_API_KEY -e NIM_HTTP_API_PORT=9000 -e NIM_GRPC_API_PORT=50051 \
   -e NIM_TAGS_SELECTOR="name=chatterbox-tts-multilingual,batch_size=8" \
   -p 9000:9000 -p 50051:50051 \
@@ -38,6 +42,10 @@ Notes from NVIDIA's documentation:
 - English voice: `Chatterbox-Multilingual.en-US.Male` (no British voice).
 - Maximum 500 characters per request. The backend splits longer text into sentences.
 - If the image name does not pull, check the exact name on NGC.
+- The cache folder (`/opt/nim/.cache`) is NVIDIA's usual NIM layout; check it against the
+  Chatterbox deploy page.
+- Before judging, run `python scripts/predemo_check.py` from the repository root.
+- The Spark is on loan: afterwards run `docker logout nvcr.io` and delete any saved key.
 
 Do **not** use the hosted build.nvidia.com endpoint: the hackathon rules require a local model.
 
