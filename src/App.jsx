@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import L from "leaflet";
 import "./App.css";
 
 import AccessRouteApp from "./AccessRouteApp";
@@ -160,8 +161,7 @@ function QgisWebMap({
   const [selectedFeatureProps, setSelectedFeatureProps] = useState(null);
 
   useEffect(() => {
-    const L = window.L;
-    if (!L || !mapContainerRef.current) return;
+    if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {

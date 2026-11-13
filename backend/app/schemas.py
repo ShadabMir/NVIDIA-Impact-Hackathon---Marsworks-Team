@@ -1,7 +1,7 @@
 from datetime import date, time
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class StrictModel(BaseModel):
@@ -32,6 +32,29 @@ class AccessRequirements(StrictModel):
     min_transfer_minutes: int = Field(default=10, ge=0, le=120)
     max_gradient_percent: float | None = Field(default=None, ge=0, le=15)
     boarding_buffer_minutes: int = Field(default=0, ge=0, le=30)
+
+
+class RouteGeometry(StrictModel):
+    type: Literal["LineString"]
+    coordinates: list[tuple[float, float]] = Field(min_length=2)
+
+    @model_validator(mode="after")
+    def valid_coordinates(self):
+        if any(not (-180 <= lon <= 180 and -90 <= lat <= 90) for lon, lat in self.coordinates):
+            raise ValueError("Route coordinates must be longitude/latitude in WGS84")
+        return self
+
+
+class MapStop(StrictModel):
+    name: str = Field(max_length=200)
+    coordinate: tuple[float, float]
+
+    @model_validator(mode="after")
+    def valid_coordinate(self):
+        lon, lat = self.coordinate
+        if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+            raise ValueError("Stop coordinates must be longitude/latitude in WGS84")
+        return self
 
 
 class Hospital(StrictModel):

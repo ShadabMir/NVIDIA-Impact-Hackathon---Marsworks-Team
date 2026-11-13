@@ -4,6 +4,55 @@
   --nv-green: #76b900;
 }
 
+/* Phone-first navigation: a tall map with a compact, readable arrival sheet. */
+.navigation-page .account-nav, .navigation-page .journey-tabs { flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin-bottom: 8px; }
+.navigation-page .account-nav button, .navigation-page .journey-tabs button { flex: 0 0 auto; min-height: 40px; font-size: .85rem; }
+.navigation-shell { overflow: hidden; background: #fff; border-radius: 24px; box-shadow: 0 8px 32px #17334d18; }
+.navigation-map-surface { position: relative; }
+.portrait-journey-map .gmap-wrapper { border: 0; border-radius: 0; box-shadow: none; }
+.portrait-journey-map .gmap-canvas { height: min(66svh, 680px); min-height: 400px; width: 100%; }
+.navigation-heading { position: absolute; z-index: 700; top: 12px; left: 12px; right: 12px; display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 16px; padding: 12px; box-shadow: 0 3px 16px #17334d26; }
+.navigation-heading-icon { background: #eaf2fc; color: #005eb8; border-radius: 12px; font-size: 1.6rem; padding: 6px 10px; }
+.navigation-heading > div { flex: 1; min-width: 0; }
+.navigation-heading small, .navigation-heading strong { display: block; }
+.navigation-heading small { color: #526577; font-size: .75rem; }
+.navigation-heading strong { font-size: .95rem; line-height: 1.25; }
+.tracking-toggle { border: 1px solid #ced9e2; background: #fff; color: #005eb8; border-radius: 24px; min-height: 44px; padding: 8px 12px; font-weight: 700; white-space: nowrap; }
+.tracking-toggle.is-tracking { background: #e8f5ee; border-color: #b0d5c2; color: #086447; }
+.map-nav-controls { position: absolute; z-index: 650; bottom: 42px; left: 12px; display: flex; gap: 8px; }
+.map-nav-controls button { background: #fff; border: 0; border-radius: 24px; min-height: 44px; box-shadow: 0 2px 12px #17334d30; font-size: .85rem; padding: 8px 14px; }
+.transport-legend { position: absolute; z-index: 650; bottom: 8px; left: 12px; display: flex; flex-wrap: wrap; gap: 10px; font-size: .7rem; background: #ffffffeb; padding: 5px 10px; border-radius: 16px; }
+.transport-legend i { display: inline-block; width: 12px; height: 4px; border-radius: 3px; vertical-align: middle; margin-right: 3px; }
+.navigation-map-status { position: absolute; z-index: 690; top: 104px; left: 12px; right: 12px; padding: 10px 12px; background: #eef5ffed; color: #164a7b; border-radius: 12px; font-size: .85rem; }
+.navigation-map-error { background: #fff3d9f5; color: #63481a; max-height: 130px; overflow-y: auto; }
+.navigation-bottom-sheet { position: relative; z-index: 700; background: #fff; border-radius: 24px 24px 0 0; margin-top: -14px; padding: 10px 20px 18px; box-shadow: 0 -4px 24px #17334d16; }
+.navigation-sheet-handle { width: 36px; height: 4px; background: #d4dde4; border-radius: 4px; margin: 0 auto 14px; }
+.navigation-arrival-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; padding-bottom: 14px; border-bottom: 1px solid #e6edf1; }
+.navigation-arrival-summary strong { font-size: 1.65rem; color: #087650; letter-spacing: -.04em; }
+.navigation-arrival-summary span { font-size: .9rem; color: #4c6272; }
+.navigation-next-leg { display: flex; gap: 12px; align-items: flex-start; padding: 16px 0 8px; }
+.mode-symbol { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; width: 44px; min-height: 44px; color: #fff; font-size: 1.4rem; }
+.navigation-next-leg small, .navigation-next-leg strong, .navigation-next-leg span:not(.mode-symbol), .transit-leg-card small, .transit-leg-card strong { display: block; }
+.navigation-next-leg small, .transit-leg-card small { color: #63788a; font-size: .75rem; margin-bottom: 3px; }
+.navigation-next-leg strong { font-size: 1rem; }
+.navigation-next-leg div > span { color: #526577; font-size: .85rem; margin-top: 3px; }
+.navigation-transit-options h3 { font-size: .8rem; color: #63788a; margin: 16px 0 8px; }
+.transit-leg-card { width: 100%; display: flex; align-items: flex-start; gap: 10px; text-align: left; border: 1px solid #dfe8ee; border-left: 4px solid; border-radius: 12px; background: #f8fbfd; padding: 12px; margin-top: 8px; }
+.transit-leg-card > span:last-child { font-size: .85rem; }
+.navigation-warning { border-left: 3px solid #d99d19; background: #fff8e7; color: #674d1d; font-size: .8rem; padding: 10px; margin: 10px 0; border-radius: 6px; }
+.navigation-access-note { display: block; color: #63788a; font-size: .72rem; margin-top: 10px; }
+.navigation-secondary-actions { display: flex; gap: 8px; margin: 14px 0; }
+.navigation-secondary-actions button { flex: 1; min-height: 44px; border-radius: 24px; background: #fff; }
+.transport-map-pin { display: flex; justify-content: center; align-items: center; min-width: 44px; height: 36px; border: 2px solid #fff; border-radius: 12px; color: #fff; font-weight: 800; font-size: .8rem; box-shadow: 0 2px 8px #0004; }
+@media (max-width: 540px) {
+  .navigation-page { padding-left: 0 !important; padding-right: 0 !important; }
+  .navigation-page > nav, .navigation-page > p { margin-left: 12px; margin-right: 12px; }
+  .navigation-shell { border-radius: 0; }
+  .portrait-journey-map .gmap-canvas { height: 62svh; min-height: 380px; }
+  .navigation-bottom-sheet { padding-left: 16px; padding-right: 16px; }
+  .navigation-secondary-actions, .portrait-navigation-page > details, .portrait-navigation-page > .card { margin-left: 12px; margin-right: 12px; }
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: #f0f4f5;

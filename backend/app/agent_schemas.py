@@ -5,6 +5,7 @@ Kept separate from app/schemas.py so the original demo routes are unchanged.
 from typing import Any, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from app.schemas import MapStop, RouteGeometry
 
 
 class StrictModel(BaseModel):
@@ -94,6 +95,8 @@ class LegOut(StrictModel):
     distance_m: int = 0
     max_gradient_pct: float | None = None
     line: str | None = None
+    geometry: RouteGeometry | None = None
+    map_stops: list[MapStop] = Field(default_factory=list)
 
 
 class OptionAssessment(StrictModel):
