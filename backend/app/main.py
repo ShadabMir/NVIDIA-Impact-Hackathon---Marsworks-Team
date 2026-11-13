@@ -4,6 +4,7 @@ import httpx
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.agent_routes import router as agent_router
 from app.config import get_settings
 from app.schemas import (
     ExtractionResponse,
@@ -34,6 +35,7 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+app.include_router(agent_router)
 
 
 @app.get("/health", tags=["System"])

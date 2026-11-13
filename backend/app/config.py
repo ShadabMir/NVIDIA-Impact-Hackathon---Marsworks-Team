@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     ollama_model: str = ""
     ollama_timeout_seconds: float = Field(default=90, gt=0, le=300)
     max_upload_mb: int = Field(default=10, ge=1, le=25)
+    # Text model for the Royal Hallamshire agent (tool calling). Separate from the vision model above.
+    ollama_agent_model: str = "nemotron-3-nano:30b"
+    live_weather: bool = True
 
     @property
     def allowed_origins(self) -> list[str]:
