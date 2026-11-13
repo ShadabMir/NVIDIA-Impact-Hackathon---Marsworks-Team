@@ -40,6 +40,15 @@ Screen readers get a full sentence for every icon (`aria-label`).
    if the option is unsuitable, or if it arrives late when a suitable on-time option exists. If
    the Spark is unreachable, the rules choose (🛡️).
 
+**Route shapes:** when guidance opens, `POST /api/v1/agent/guide/shapes` returns a map line for
+every leg, from the start area to the stops (real stop coordinates in the data) to the entrance.
+
+- **With `ORS_API_KEY`:** lines follow the roads via openrouteservice. Bus, tram and taxi legs use
+  the driving profile; wheeling legs use the wheelchair profile, then walking if no wheelchair
+  route exists. A "taxi from here" re-plan also follows the roads. Results are cached.
+- **Without a key, or if the provider fails:** legs are straight lines between the correct stops,
+  and a small **≈** badge on the map marks the route as approximate.
+
 Waiting times come from each leg's `wait_minutes` (half the bus or tram interval, or the taxi
 pickup). The route shapes in `backend/app/data/sheffield_rhh.json` are approximate demo
 coordinates.

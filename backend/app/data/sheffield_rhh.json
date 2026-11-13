@@ -177,6 +177,92 @@
       "no_data": true
     }
   ],
+  "stops": {
+    "south-rd-fir-st": {
+      "name": "South Rd / Fir St",
+      "coordinate": [
+        -1.4984,
+        53.39545
+      ]
+    },
+    "glossop-rd-beech-hill": {
+      "name": "Glossop Rd / Beech Hill Rd",
+      "coordinate": [
+        -1.4883,
+        53.38005
+      ]
+    },
+    "walkley-rd-stop": {
+      "name": "Walkley Road",
+      "coordinate": [
+        -1.4962,
+        53.3941
+      ]
+    },
+    "clarkehouse-rd-stop": {
+      "name": "Clarkehouse Road",
+      "coordinate": [
+        -1.4972,
+        53.3768
+      ]
+    },
+    "infirmary-road-tram": {
+      "name": "Infirmary Road tram stop",
+      "coordinate": [
+        -1.4855,
+        53.3925
+      ]
+    },
+    "university-tram": {
+      "name": "University of Sheffield tram stop",
+      "coordinate": [
+        -1.4783,
+        53.3822
+      ]
+    },
+    "hillsborough-tram": {
+      "name": "Hillsborough tram stop",
+      "coordinate": [
+        -1.5011,
+        53.406
+      ]
+    },
+    "hillsborough-interchange": {
+      "name": "Hillsborough Interchange",
+      "coordinate": [
+        -1.5004,
+        53.4066
+      ]
+    },
+    "arundel-gate-stop": {
+      "name": "Arundel Gate",
+      "coordinate": [
+        -1.4663,
+        53.3812
+      ]
+    },
+    "cathedral-tram": {
+      "name": "Cathedral tram stop",
+      "coordinate": [
+        -1.4716,
+        53.3829
+      ]
+    },
+    "station-tram": {
+      "name": "Sheffield Station tram stop",
+      "coordinate": [
+        -1.4627,
+        53.3786
+      ]
+    },
+    "meadowhall-tram": {
+      "name": "Meadowhall Interchange tram stop",
+      "coordinate": [
+        -1.4127,
+        53.417
+      ]
+    }
+  },
   "options": [
     {
       "id": "walkley-bus-95",

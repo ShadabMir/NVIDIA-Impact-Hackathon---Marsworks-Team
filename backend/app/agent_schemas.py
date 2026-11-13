@@ -250,3 +250,15 @@ class GuidanceDecision(StrictModel):
     disruptions_applied: list[AgentDisruption]
     model_stats: ModelStats | None = None
     agent_steps: list[AgentStep]
+
+
+class GuidanceShapesRequest(StrictModel):
+    origin_id: str = Field(min_length=1, max_length=40)
+    option_id: str = Field(min_length=1, max_length=80)
+    entrance_id: str | None = Field(default=None, max_length=40)
+
+
+class GuidanceShapes(StrictModel):
+    """Map shapes per leg, in the same order as the plan's legs."""
+    legs: list[dict[str, Any]]
+    source: Literal["roads", "partial", "straight", "existing"]

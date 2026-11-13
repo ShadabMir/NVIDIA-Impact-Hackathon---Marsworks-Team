@@ -13,9 +13,11 @@ from app.agent_schemas import (
     AgentReassessRequest,
     GuidanceDecision,
     GuidanceReplanRequest,
+    GuidanceShapes,
+    GuidanceShapesRequest,
 )
 from app.config import get_settings
-from app.services import agent, drafts, guidance
+from app.services import agent, drafts, guidance, shapes
 from app.services.llm import ModelUnavailable, warmup
 from app.services import sheffield as sh
 
@@ -97,3 +99,19 @@ async def guide_replan(body: GuidanceReplanRequest):
     """Live guidance: something went wrong mid-journey; decide what to do from the current position."""
     check_origin(body.request)
     return await guidance.replan(body, get_settings())
+
+
+@router.post("/guide/shapes", response_model=GuidanceShapes)
+async def guide_shapes(body: GuidanceShapesRequest):
+    """Road-following map shapes for a planned route (openrouteservice if configured, else straight lines between stops)."""
+    if body.origin_id not in sh.origin_ids():
+        raise HTTPException(422, "Unknown origin_id.")
+    option = next((o for o in sh.options_for(body.origin_id) if o["id"] == body.option_id), None)
+    if option is None:
+        raise HTTPException(422, "Unknown option_id for this start area.")
+    hospital = sh.hospital()
+    entrance = next((e for e in hospital["entrances"] if e["id"] == body.entrance_id), None) or hospital["entrances"][0]
+    start = shapes.origin_point(body.origin_id) or [hospital["lon"], hospital["lat"]]
+    goal = entrance.get("coordinate") or [hospital["lon"], hospital["lat"]]
+    legs, source = await shapes.shape_legs(option["legs"], start, goal, get_settings())
+    return GuidanceShapes(legs=[{"geometry": leg.get("geometry"), "map_stops": leg.get("map_stops", [])} for leg in legs], source=source)

@@ -17,11 +17,30 @@ export default function LiveGuidance({ plan, request, origin, goal, onClose, onP
   const best = plan.options.find(option => option.id === plan.recommendation.option_id) || plan.options[0];
   const arriveBy = Date.parse(plan.arrive_by);
   const entranceName = plan.entrance?.name ? `the ${plan.entrance.name}` : "the hospital entrance";
-  const firstPoint = best.legs.find(leg => leg.geometry)?.geometry.coordinates[0] || origin;
-  const initial = useMemo(() => buildTimeline(best.legs, { start: Date.parse(best.leave_at), origin: firstPoint, goal }), [best, firstPoint, goal]);
+  // Road-following shapes for the planned legs (openrouteservice via the backend; straight lines between stops if unavailable).
+  const [shaped, setShaped] = useState(null);
+  const baseLegs = shaped?.legs || best.legs;
+  const firstPoint = baseLegs.find(leg => leg.geometry)?.geometry.coordinates[0] || origin;
+  const initial = useMemo(() => buildTimeline(baseLegs, { start: Date.parse(best.leave_at), origin: firstPoint, goal }), [baseLegs, best.leave_at, firstPoint, goal]);
 
   const [run, setRun] = useState(0);
   const [route, setRoute] = useState({ id: best.id, legs: best.legs, timeline: initial, custom: false, entrance: entranceName });
+
+  useEffect(() => {
+    let active = true;
+    api("/api/v1/agent/guide/shapes", { method: "POST", body: JSON.stringify({ origin_id: request.origin_id, option_id: best.id, entrance_id: plan.entrance?.id || null }) })
+      .then(result => {
+        if (!active) return;
+        const legs = best.legs.map((leg, index) => ({ ...leg, ...(result.legs[index] || {}) }));
+        const start = legs.find(leg => leg.geometry)?.geometry.coordinates[0] || origin;
+        setShaped({ legs, source: result.source });
+        // Swap in the road shapes unless the route has already been re-planned.
+        setRoute(previous => previous.custom ? previous
+          : { ...previous, legs, timeline: buildTimeline(legs, { start: Date.parse(best.leave_at), origin: start, goal }) });
+      })
+      .catch(() => { if (active) setShaped(previous => previous || { legs: best.legs, source: "straight" }); });
+    return () => { active = false; };
+  }, [best, request.origin_id, plan.entrance?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [simNow, setSimNow] = useState(initial.start);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(30);
@@ -106,7 +125,7 @@ export default function LiveGuidance({ plan, request, origin, goal, onClose, onP
 
   function restart() {
     stopSpeaking(); spoken.current = ""; lateChecked.current = "";
-    setRoute({ id: best.id, legs: best.legs, timeline: initial, custom: false, entrance: entranceName });
+    setRoute({ id: best.id, legs: baseLegs, timeline: initial, custom: false, entrance: entranceName });
     setSimNow(initial.start); setDecision(null); setProblems([]); setDisruptions([]); setError(""); setPlaying(false);
     setRun(n => n + 1);
   }
@@ -125,6 +144,7 @@ export default function LiveGuidance({ plan, request, origin, goal, onClose, onP
           <span>{status.spare >= 0 ? `+${status.spare}` : status.spare}</span>
         </div>
         <div className="lg-now" aria-label={`Time now ${clock(simNow)}`}>{clock(simNow)}</div>
+        {shaped?.source === "straight" && <div className="lg-approx" role="img" aria-label="Approximate route: straight lines between stops, no road data" title="Approximate route (no road data)">≈</div>}
         <div className="lg-tools">
           <button type="button" onClick={() => { setMuted(m => !m); stopSpeaking(); }} aria-label={muted ? "Turn voice on" : "Turn voice off"} title={muted ? "Voice on" : "Voice off"}>
             {muted ? <IconVolumeOff size={26} /> : <IconVolume size={26} />}

@@ -32,6 +32,7 @@ from app.agent_schemas import (
     WeatherOut,
 )
 from app.config import Settings
+from app.services import shapes
 from app.services import sheffield as sh
 from app.services.llm import ModelUnavailable, chat
 
@@ -229,6 +230,9 @@ async def replan(req: GuidanceReplanRequest, settings: Settings) -> GuidanceDeci
                                  tokens_per_second=round(out / gen, 1) if gen > 0 else None,
                                  load_seconds=round(sum(s["load_seconds"] for s in stats), 2))
     cand_legs = next(c[3] for c in candidates_for(req, legs, disruptions) if c[0] == cid)
+    if kind == "taxi_from_here":  # follow the roads, not a straight line, when a routing key is set
+        goal = cand_legs[0]["geometry"]["coordinates"][-1]
+        cand_legs, _ = await shapes.shape_legs(cand_legs, [req.position.lon, req.position.lat], goal, settings)
     legs_out = [LegOut(mode=leg["mode"], instruction=leg["instruction"], minutes=leg["minutes"],
                        distance_m=leg.get("distance_m", 0), max_gradient_pct=leg.get("max_gradient_pct"),
                        line=leg.get("line"), geometry=leg.get("geometry"), map_stops=leg.get("map_stops", []),

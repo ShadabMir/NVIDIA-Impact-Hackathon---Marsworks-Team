@@ -61,3 +61,4 @@
 @keyframes lg-ring { 0% { box-shadow: 0 0 0 0 rgba(0, 94, 184, .5); } 100% { box-shadow: 0 0 0 18px rgba(0, 94, 184, 0); } }
 @media (prefers-reduced-motion: reduce) { .lg-tone-warn .lg-cue-icon, .gm-me, .gm-problem, .lg-spin { animation: none; } }
 @media (max-width: 480px) { .lg-cue-icon { font-size: 3.4rem; } .lg-cue-value { font-size: 2.1rem; } .lg-strip li { min-width: 46px; height: 46px; font-size: 1.4rem; } }
+.lg-approx { position: absolute; bottom: 12px; left: 88px; z-index: 500; width: 36px; height: 32px; border-radius: 8px; background: #fff4d6; color: #7a4a00; font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
