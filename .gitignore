@@ -13,7 +13,6 @@ uploads/
 *.log
 .cache/
 .data/
-=======
 # Logs
 logs
 *.log

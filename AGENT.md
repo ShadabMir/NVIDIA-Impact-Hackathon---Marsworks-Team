@@ -120,10 +120,6 @@ cd backend
 python -m pytest -q
 ```
 
-<<<<<<< HEAD
 The combined suite covers profiles, sessions, navigation adapters, rule enforcement, re-planning, drafts, the model-directed loop against a fake
-=======
-25 tests. They cover rule enforcement, re-planning, drafts, the model-directed loop against a fake
->>>>>>> a831852e2120cc8d634e35eb8521a19eee4f9613
 Ollama server, the model trying to choose an unsafe route, the model being offline, and parsing
 of Open-Meteo responses.
