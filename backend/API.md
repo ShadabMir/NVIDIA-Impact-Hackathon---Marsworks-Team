@@ -2,7 +2,7 @@
 
 Base URL: `http://SPARK_IP:8000` (use `http://localhost:8000` only on the API machine).
 
-All successful responses below return HTTP 200. POST requests use `application/json`, except the image upload. Unknown JSON fields are rejected. No login, saved journeys, background monitoring or automatic message sending is implemented. Keep journey state in React and resend it for reassessment/support.
+All successful responses below return HTTP 200. POST/PUT requests use `application/json`, except the image upload. Unknown JSON fields are rejected. Registration/login and saved profiles are implemented; saved journeys, background monitoring and automatic message sending are not. Keep journey state in React and resend it for reassessment/support. The Vite frontend defaults to `/backend` as a same-origin proxy; use `credentials: 'include'` for account calls.
 
 Interactive schema: `/docs`. Machine-readable schema: `/openapi.json`.
 
@@ -161,4 +161,33 @@ Errors use `{"detail":"message"}`; validation errors may contain a list under `d
 
 Use a loading state during extraction/planning. Preserve user-entered details on failure. Render model text and drafts as plain text. Format timestamps for `Europe/London`; do not append `Z` to a local time without conversion. All JSON POST calls need `Content-Type: application/json`.
 
-For a phone demo, set the frontend API URL to Spark's reachable IP and add the actual frontend origin to backend `CORS_ORIGINS`. The API is stateless and unauthenticated; use synthetic documents on the trusted demo network.
+For a phone demo, use HTTPS (geolocation is unavailable over ordinary LAN HTTP) and add the actual frontend origin to backend `CORS_ORIGINS`. Keep the same-origin proxy where possible. Use synthetic documents and account details.
+
+## Profiles and settings
+
+| Method | Path | Body / response |
+| --- | --- | --- |
+| GET | `/api/v1/access/defaults` | `presets` keyed by mobility-aid ID, plus source notes and assumptions. |
+| POST | `/api/v1/auth/register` | Full profile plus `password` (10–256 characters); returns profile and sets HttpOnly session cookie. |
+| POST | `/api/v1/auth/login` | `{email, password}`; returns saved profile and sets session cookie. |
+| POST | `/api/v1/auth/logout` | No body; revokes session and clears cookie. |
+| GET | `/api/v1/profile` | Current user's profile; 401 if not signed in. |
+| PUT | `/api/v1/profile` | Replace own profile; requires cookie. Returns saved profile. |
+
+Profile fields: `first_name`, `last_name`, `email`, `default_hospital_id` (currently `northern-general-demo`), `mobility_aid`, and `access`. Mobility aid: `manual_wheelchair`, `powered_wheelchair`, `walking_aid`, `limited_mobility`, or `no_aid`. Access fields are the existing journey fields plus nullable `max_gradient_percent` (0–15) and `boarding_buffer_minutes` (0–30). The preset uses 5% and 3 minutes respectively for wheelchairs, with assumptions disclosed in Settings. Changing the mobility aid resets suggested values in the UI; users can override them.
+
+These access fields are accepted by journey planning and reassessment. Known simulated slopes are compared against the preference; missing gradients stay unknown. Boarding buffer is added once per bus leg to overall journey duration. Use `arrive_at - leave_at` for total planned elapsed time; fixture leg times remain baseline.
+
+Account errors: 401 invalid/expired session or invalid credentials; 403 untrusted Origin for account mutations; 409 duplicate email; 422 invalid profile/password. No password is included in a successful response. Password recovery and verification emails are not implemented.
+
+## Location and live outdoor navigation
+
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/api/v1/locations/reverse?latitude=...&longitude=...` | Explicit one-time lookup. Returns nearby `address`, coordinates, `source`, and confirmation notice. |
+| GET | `/api/v1/locations/search?q=...` | Explicit UK address/place search, 3–250 characters. Returns up to 3 `{label, latitude, longitude, source}` items. No autocomplete. |
+| POST | `/api/v1/navigation/route` | `{origin: {latitude,longitude}, destination: {latitude,longitude}, access: {...}}`; requests ORS wheelchair geometry and instructions. |
+
+Navigation returns `geometry` (GeoJSON LineString), `steps` (`instruction`, `distance_m`, `duration_seconds`, `coordinate` as `[longitude,latitude]`), total `distance_m`, total `duration_seconds`, `provider`, `data_status`, `applied_max_gradient_percent`, `exceeds_total_distance`, `warnings`, `provider_warnings` and `notice`. It returns 503 until `ORS_API_KEY` is configured; 502/504 indicate provider failure/timeout. It never substitutes a car route. ORS's discrete incline limits are rounded down; preferences below its 3% minimum return 422 rather than being silently relaxed.
+
+Live location uses browser `watchPosition`, not a polling API. GPS movement does not automatically request a new route, send repeated reverse lookups or prove route accessibility. Render provider warnings and distance/rest limitations. Keep provider directions visually separate from simulated bus-journey assessments. Confirm the exact destination entrance; geocoding may return the centre of a building.

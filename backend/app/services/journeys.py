@@ -41,6 +41,11 @@ def plan_journey(
             reasons.append("Total walking distance exceeds the specified limit.")
         if any(t < access.min_transfer_minutes for t in route.transfer_minutes):
             reasons.append("A transfer is shorter than the required minimum.")
+        if access.max_gradient_percent is not None:
+            if route.max_gradient_percent is None:
+                unknowns.append("Route gradient has not been verified.")
+            elif route.max_gradient_percent > access.max_gradient_percent:
+                reasons.append("Route gradient exceeds your slope preference.")
         for required, available, label in [
             (access.step_free_required or access.wheelchair_user, route.step_free, "Step-free access"),
             (access.wheelchair_user, route.wheelchair_accessible, "Wheelchair access"),
@@ -49,7 +54,9 @@ def plan_journey(
                 reasons.append(f"{label} requirement is not met.")
             elif required and available is None:
                 unknowns.append(f"{label} has not been verified.")
-        duration = route.duration_minutes + disruption.delay_minutes_by_route.get(route.id, 0)
+        boardings = sum(leg.mode == "bus" for leg in route.legs)
+        buffer = access.boarding_buffer_minutes * boardings
+        duration = route.duration_minutes + disruption.delay_minutes_by_route.get(route.id, 0) + buffer
         leave_at = request.appointment.arrive_by - timedelta(minutes=duration)
         if earliest_departure and leave_at < earliest_departure:
             reasons.append("Cannot arrive by the required time when leaving at or after the earliest departure.")

@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     ollama_model: str = ""
     ollama_timeout_seconds: float = Field(default=90, gt=0, le=300)
     max_upload_mb: int = Field(default=10, ge=1, le=25)
+    database_path: str = ".data/accessroute.sqlite3"
+    cookie_secure: bool = False
+    ors_api_key: str = ""
+    ors_base_url: str = "https://api.openrouteservice.org"
 
     @property
     def allowed_origins(self) -> list[str]:

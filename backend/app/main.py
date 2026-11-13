@@ -16,6 +16,8 @@ from app.schemas import (
 )
 from app.services.extraction import extract_appointment
 from app.services.journeys import NOTICE, load_routes, plan_journey
+from app.profiles import router as profile_router
+from app.navigation import router as navigation_router
 
 settings = get_settings()
 
@@ -30,15 +32,18 @@ app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
-    allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT"],
     allow_headers=["Content-Type"],
 )
+app.include_router(profile_router)
+app.include_router(navigation_router)
 
 
 @app.get("/health", tags=["System"])
 def health():
-    return {"status": "ok", "routing_mode": "demo", "model_configured": bool(settings.ollama_model)}
+    return {"status": "ok", "routing_mode": "demo", "model_configured": bool(settings.ollama_model),
+            "live_navigation_configured": bool(settings.ors_api_key)}
 
 
 @app.get("/health/model", tags=["System"])

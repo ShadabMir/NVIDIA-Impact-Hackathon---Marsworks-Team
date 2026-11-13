@@ -30,6 +30,8 @@ class AccessRequirements(StrictModel):
     max_continuous_walking_m: int = Field(default=150, ge=0, le=10000)
     max_total_walking_m: int = Field(default=300, ge=0, le=20000)
     min_transfer_minutes: int = Field(default=10, ge=0, le=120)
+    max_gradient_percent: float | None = Field(default=None, ge=0, le=15)
+    boarding_buffer_minutes: int = Field(default=0, ge=0, le=30)
 
 
 class Appointment(StrictModel):
@@ -67,6 +69,7 @@ class RouteOption(StrictModel):
     legs: list[JourneyLeg]
     data_status: Literal["simulated"] = "simulated"
     sources: list[str] = Field(default_factory=list)
+    max_gradient_percent: float | None = None
 
 
 class RouteAssessment(StrictModel):

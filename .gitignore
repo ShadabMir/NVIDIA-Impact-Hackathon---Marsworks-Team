@@ -12,6 +12,7 @@ dist/
 uploads/
 *.log
 .cache/
+.data/
 =======
 # Logs
 logs

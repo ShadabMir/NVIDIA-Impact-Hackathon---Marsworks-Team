@@ -16,6 +16,23 @@ body {
   margin: 0 auto;
 }
 
+.max-w-wide { max-width: 960px; }
+.account-nav, .journey-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.account-nav button, .journey-tabs button { min-height: 46px; flex: 1 0 auto; }
+.need-toggle { display: flex; align-items: flex-start; gap: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid #b8c5cf; border-radius: 12px; background: #f4f8fb; font-weight: 600; }
+.need-toggle input { min-width: 22px; min-height: 22px; accent-color: #005eb8; margin-top: 2px; }
+.step-instruction { display: flex; flex-direction: column; gap: 6px; width: 100%; text-align: left; padding: 14px; margin: 8px 0; border: 2px solid #cbd5e1; border-radius: 10px; background: #fff; min-height: 56px; }
+.current-instruction { border-color: #005eb8; background: #e8f1fa; font-weight: 700; }
+.step-instruction small { color: #425563; }
+.draft-preview { white-space: pre-wrap; overflow-wrap: anywhere; background: #f3f6f8; padding: 16px; border-radius: 12px; font-family: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid #ffdd00; outline-offset: 3px; }
+details summary { cursor: pointer; font-weight: 700; min-height: 36px; }
+@media (max-width: 540px) {
+  .gmap-canvas { height: 360px; }
+  .account-nav button, .journey-tabs button { flex: 1 0 42%; }
+  .spark-badge { white-space: normal; }
+}
+
 .app-container-wide {
   max-width: 960px;
   margin: 0 auto;

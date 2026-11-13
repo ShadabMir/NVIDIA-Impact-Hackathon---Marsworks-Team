@@ -7,11 +7,14 @@ Mobile-friendly hospital journey planning prototype for the NVIDIA Hack for Impa
 - FastAPI backend with interactive API documentation at `/docs`.
 - JPEG/PNG appointment-letter extraction through a configurable Ollama vision model.
 - User-confirmed appointment and access-requirement schemas.
-- Deterministic checks for walking limits, transfers, step-free and wheelchair requirements.
+- Deterministic checks for walking limits, transfers, step-free/wheelchair requirements, available simulated gradients and boarding-time allowances.
+- Local registration/login, saved profiles and editable access presets with SQLite and HttpOnly sessions.
+- Browser GPS tracking plus explicit address lookup and optional openrouteservice wheelchair directions.
+- Mobile React screens for appointment, simple access needs, map/steps, profile and settings.
 - Disruption reassessment and a template travel-support draft; nothing is sent.
 - Three clearly labelled fictional route fixtures for frontend development.
 
-**Current boundary:** transport routes, times, entrances and access flags are simulated. They are not real travel advice. Only `demo-home` and `northern-general-demo` are supported. Live transport, verified hospital access data, model-directed tool calling, a staff dashboard and the React frontend still need implementation. Do not describe the current deterministic route checker as a completed autonomous agent.
+**Current boundary:** transport routes, times, entrances and access flags are simulated. They are not real travel advice. Only `demo-home` and `northern-general-demo` are supported. Live transport, verified hospital access data, model-directed tool calling, and full model-directed agent orchestration still need implementation. The React frontend and a browser-only staff preview are implemented; the latter does not send requests or dispatch transport. Do not describe the current deterministic route checker as a completed autonomous agent.
 
 ## Start the backend
 
@@ -31,6 +34,16 @@ Open `http://localhost:8000/docs` or `http://SPARK_IP:8000/docs` on a reachable 
 Edit `backend/.env`: set `OLLAMA_BASE_URL` to the model server and `OLLAMA_MODEL` to an installed vision-capable model. If the API runs on Spark alongside Ollama, the default model URL is appropriate. `GET /health/model` checks server reachability and model installation, but does not prove vision support. Test with a synthetic letter to confirm vision and structured-output compatibility.
 
 The routing demo runs without Ollama; extraction returns a clear error until the model is configured. There is no fabricated extraction fallback.
+
+## New profile, settings and location features
+
+See [accessibility defaults and source notes](docs/accessibility-defaults.md) for evidence, assumptions, provider setup and Spark connection commands. [Frontend API reference](backend/API.md) covers payloads. Restart the API after pulling these changes; Vite reload alone does not add new backend routes.
+
+- Current address: explicit browser location permission and a one-time Nominatim lookup.
+- Profile: register/sign in, first name, surname, email, usual hospital, mobility aid and saved access needs.
+- Settings: optional numeric preferences with an editable source-informed preset. Individual ability is never inferred from age.
+- Map: live GPS marker and accuracy circle; manual destination selection, provider geometry and written instructions when ORS is configured. No live bus feed or automatic rerouting yet.
+- Keep fixture journeys and hand-authored GeoJSON clearly labelled as demo data.
 
 ## Routes
 
@@ -85,7 +98,7 @@ Use timezone-aware dates such as `+00:00` for UK winter or `+01:00` for summer. 
 
 ## React handoff
 
-Create the frontend separately with React + Vite in `frontend/`. Agree ownership before scaffolding it.
+The React + Vite frontend is now in the repository root (`src/`). Run `bash scripts/dev.sh` from the root to start both servers. It uses a same-origin `/backend` proxy by default; legacy `VITE_API_BASE_URL` overrides should be removed unless intentionally pointing at another API.
 
 Example frontend environment value:
 
@@ -115,11 +128,11 @@ For phones, run Vite with `--host 0.0.0.0` and add its actual origin (e.g. `http
 
 - Use synthetic appointment letters throughout the hackathon.
 - JPEG and PNG uploads only, up to 10 MB by default; PDF conversion is not implemented.
-- No application database or durable upload storage is implemented. Upload middleware may spool files temporarily; uploaded files are closed after processing.
+- Profiles and access preferences are saved in a local SQLite database (`backend/.data/` by default, ignored by git). Appointment uploads are not durably stored; upload middleware may spool files temporarily and uploaded files are closed after processing.
 - Configure the model endpoint to the local Spark server to keep document inference local. Do not expose Ollama directly to the phone.
 - The app does not log letter contents. Deployment operators must separately check model-server logging and retention.
 - Future live transport queries should include only the locations/times needed by the provider, not the letter or patient identifiers.
-- This prototype has no authentication; use a trusted demo network with synthetic data. It is not ready for patient deployment.
+- Account routes use salted PBKDF2 password hashes and revocable HttpOnly cookie sessions. Use synthetic accounts on a trusted demo network. Email verification, password recovery, production abuse controls and patient-deployment review are not implemented. Use HTTPS and `COOKIE_SECURE=true` for secure deployments.
 
 Dexi can collect sourced route/entrance information in `backend/data-template.csv`; the developer should validate it before connecting it to routing. Keep unknowns explicit and retain source/retrieval timestamps. Do not relabel fixture values as verified data.
 
