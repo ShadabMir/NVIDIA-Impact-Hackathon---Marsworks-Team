@@ -1,5 +1,5 @@
-// Map a saved profile (main app) onto the agent's access needs. Written by Yanki for agent.html;
-// shared so the main journey flow uses exactly the same translation.
+// Map a saved profile (main app) onto the agent's access needs. Written by Yanki;
+// used to build the agent's access needs from the profile.
 export function profileNeeds(profile) {
   const access = profile.access;
   return {

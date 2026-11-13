@@ -1,5 +1,5 @@
 // Shared display of an agent plan: recommendation, local-compute stats, disruptions,
-// drafts, every route checked and the agent trace. Used by the main app and agent.html.
+// drafts, every route checked and the agent trace. Used by the journey screen (AccessRouteApp.jsx).
 import { useState } from "react";
 import { toLondonTime } from "./api.js";
 import { speak, stopSpeaking } from "../tts/speak.js";

@@ -1,7 +1,7 @@
 """Text-to-speech via a speech model running locally on the DGX Spark.
 
 Additive module: it does not change any existing route. Start the API with
-``python -m uvicorn app.main_tts:app`` to include these endpoints (see backend/TTS.md).
+``python -m uvicorn app.main:app``; the TTS routes are included (see backend/TTS.md).
 
 The default target is the Chatterbox TTS Multilingual NIM container, which exposes
 ``POST /v1/audio/synthesize`` (multipart form fields) on port 9000. Point TTS_BASE_URL at the

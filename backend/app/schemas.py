@@ -1,7 +1,7 @@
 from datetime import date, time
 from typing import Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class StrictModel(BaseModel):
@@ -32,96 +32,6 @@ class AccessRequirements(StrictModel):
     min_transfer_minutes: int = Field(default=10, ge=0, le=120)
     max_gradient_percent: float | None = Field(default=None, ge=0, le=15)
     boarding_buffer_minutes: int = Field(default=0, ge=0, le=30)
-
-
-class Appointment(StrictModel):
-    hospital_id: Literal["northern-general-demo"]
-    department: str = Field(min_length=1, max_length=150)
-    # Include a timezone offset, e.g. 2026-11-20T10:00:00+00:00.
-    arrive_by: AwareDatetime
-    confirmed_by_user: Literal[True]
-
-
-class JourneyRequest(StrictModel):
-    # Only this fixture origin is supported until a live provider is connected.
-    origin_id: Literal["demo-home"] = "demo-home"
-    appointment: Appointment
-    access: AccessRequirements = Field(default_factory=AccessRequirements)
-
-
-class JourneyLeg(StrictModel):
-    mode: Literal["walk", "bus", "transfer"]
-    instruction: str
-    duration_minutes: int = Field(ge=0)
-    walking_distance_m: int = Field(default=0, ge=0)
-
-
-class RouteOption(StrictModel):
-    id: str
-    title: str
-    entrance: str
-    duration_minutes: int
-    total_walking_m: int
-    max_continuous_walking_m: int
-    transfer_minutes: list[int]
-    step_free: bool | None
-    wheelchair_accessible: bool | None
-    legs: list[JourneyLeg]
-    data_status: Literal["simulated"] = "simulated"
-    sources: list[str] = Field(default_factory=list)
-    max_gradient_percent: float | None = None
-
-
-class RouteAssessment(StrictModel):
-    route: RouteOption
-    status: Literal["matches_demo_requirements", "needs_verification", "rejected"]
-    reasons: list[str]
-    unknowns: list[str]
-    leave_at: AwareDatetime
-    arrive_at: AwareDatetime
-
-
-class JourneyResponse(StrictModel):
-    data_status: Literal["simulated"] = "simulated"
-    notice: str
-    recommended_route_id: str | None
-    support_needed: bool
-    assessments: list[RouteAssessment]
-
-
-class Disruption(StrictModel):
-    unavailable_route_ids: list[str] = Field(default_factory=list, max_length=20)
-    delay_minutes_by_route: dict[str, int] = Field(default_factory=dict)
-
-    @model_validator(mode="after")
-    def validate_delays(self):
-        if len(self.delay_minutes_by_route) > 20:
-            raise ValueError("At most 20 delayed routes are supported")
-        if any(delay < 0 or delay > 240 for delay in self.delay_minutes_by_route.values()):
-            raise ValueError("Delay must be between 0 and 240 minutes")
-        return self
-
-
-class ReassessmentRequest(StrictModel):
-    journey: JourneyRequest
-    disruption: Disruption
-    # Optional earliest departure; prevents a delayed route being proposed in the past.
-    earliest_departure: AwareDatetime | None = None
-
-
-class SupportDraftRequest(StrictModel):
-    journey: JourneyRequest
-    disruption: Disruption = Field(default_factory=Disruption)
-    earliest_departure: AwareDatetime | None = None
-
-
-class SupportDraftResponse(StrictModel):
-    subject: str
-    body: str
-    sent: Literal[False] = False
-    generation_method: Literal["template"] = "template"
-    requires_review: Literal[True] = True
-    data_status: Literal["simulated"] = "simulated"
 
 
 class Hospital(StrictModel):

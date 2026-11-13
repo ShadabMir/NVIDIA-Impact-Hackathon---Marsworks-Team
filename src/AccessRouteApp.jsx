@@ -9,7 +9,6 @@ import "./agent/agent.css";
 
 const emptyProfile = () => ({ first_name: "", last_name: "", email: "", default_hospital_id: "royal-hallamshire", default_starting_address: "", mobility_aid: "manual_wheelchair", access: presetFor("manual_wheelchair") });
 const initialAppointment = () => ({ hospital_id: "royal-hallamshire", department: "Neuro-Rehabilitation Outpatients", date: "2026-11-16", arrival: "10:15", origin: "" });
-const formatTime = value => new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 
 // Royal Hallamshire journeys are planned by the AI agent, which only has checked route data for
 // some areas. Pick the nearest one to the user's start point, or say honestly that there is none.
@@ -55,25 +54,6 @@ function NeedsForm({ profile, setProfile, presets }) {
   </>;
 }
 
-function RouteResults({ result }) {
-  if (!result) return <p className="text-muted">Confirm your appointment and choose “Plan my journey” first.</p>;
-  return <>
-    <div className="alert alert-warning"><strong>Demonstration journey</strong><p className="small mb-0">{result.notice} Your entered address is not used by these fixture routes.</p></div>
-    {result.assessments.map(item => <article key={item.route.id} className={`card mb-3 ${item.route.id === result.recommended_route_id ? "border-primary border-2" : ""}`}>
-      <div className="card-body">
-        <span className={`badge ${item.status === "rejected" ? "bg-danger" : item.status === "needs_verification" ? "bg-warning text-dark" : "bg-primary"}`}>
-          {item.status === "rejected" ? "Does not meet your needs" : item.status === "needs_verification" ? "Access needs checking" : "Matches demo preferences"}
-        </span>
-        <h3 className="h5 mt-2">{item.route.title}</h3>
-        <p>Leave at <strong>{formatTime(item.leave_at)}</strong> · arrive by {formatTime(item.arrive_at)}<br />{item.route.total_walking_m} m total walking/wheeling</p>
-        <ul>{[...item.reasons, ...item.unknowns].map((reason, index) => <li key={index}>{reason}</li>)}</ul>
-        <ol>{item.route.legs.map((leg, index) => <li key={index}>{leg.instruction}</li>)}</ol>
-      </div>
-    </article>)}
-    {result.support_needed && <p role="status" className="alert alert-info">No demo route meets all the checks. You can prepare a travel-support request.</p>}
-  </>;
-}
-
 export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const [page, setPage] = useState("journey");
   const [step, setStep] = useState(1);
@@ -104,8 +84,6 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const [navigation, setNavigation] = useState(null);
   const [navigationIndex, setNavigationIndex] = useState(0);
   const [focus, setFocus] = useState(null);
-  const [plan, setPlan] = useState(null);
-  const [journeyPayload, setJourneyPayload] = useState(null);
   const [supportDraft, setSupportDraft] = useState(null);
   const [reviewed, setReviewed] = useState(false);
   const [geoJson, setGeoJson] = useState(demoGeoJson);
@@ -120,7 +98,6 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const [agentRequest, setAgentRequest] = useState(null);
   const [activeScenarios, setActiveScenarios] = useState([]);
   const [agentDraft, setAgentDraft] = useState(null);
-  const isAgentHospital = appointment.hospital_id === AGENT_HOSPITAL;
 
   useEffect(() => {
     let active = true;
@@ -162,7 +139,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const openPage = next => { setPage(next); setError(""); setMessage(""); };
   const changeAppointment = (key, value) => {
     setAppointment(previous => ({ ...previous, [key]: value })); setConfirmed(false);
-    setPlan(null); setJourneyPayload(null); setSupportDraft(null);
+    setSupportDraft(null);
     setAgentPlan(null); setAgentRequest(null); setAgentDraft(null); setActiveScenarios([]);
     if (key === "origin") { setOriginPoint(null); setNavigation(null); }
   };
@@ -173,7 +150,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const currentAddress = () => run(async () => {
     const point = await getPosition(); setLocation(point); setOriginPoint(point); updateAreaFor(point);
     setAppointment(previous => ({ ...previous, origin: `${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)}` }));
-    setPlan(null); setNavigation(null);
+    setNavigation(null);
     setLocationMessage(`Location found (accuracy about ${Math.round(point.accuracy)} m). Confirm the nearby address.`);
     const found = await api(`/api/v1/locations/reverse?latitude=${point.latitude}&longitude=${point.longitude}`);
     setAppointment(previous => ({ ...previous, origin: found.address }));
@@ -252,32 +229,14 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
 
   const planJourney = () => run(async () => {
     if (!confirmed) throw new Error("Confirm your appointment details on page 1 first.");
-    if (isAgentHospital) {
-      const request = buildAgentRequest();
-      const result = await planWithAgent(request);
-      setAgentPlan(result); setAgentRequest(request); setActiveScenarios([]); setAgentDraft(null); setSupportDraft(null);
-      const hospital = agentCtx?.hospital;
-      if (hospital?.lat) changeDestination({ latitude: hospital.lat, longitude: hospital.lon, label: `${result.entrance.name}, ${hospital.name}` });
-      setStep(3);
-      return;
-    }
-    const payload = {
-      origin_id: "demo-home",
-      appointment: { hospital_id: appointment.hospital_id, department: appointment.department,
-        arrive_by: londonArrival(appointment.date, appointment.arrival), confirmed_by_user: true },
-      access: profile.access,
-    };
-    const result = await api("/api/v1/journeys/plan", { method: "POST", body: JSON.stringify(payload) });
-    setPlan(result); setJourneyPayload(payload); setSupportDraft(null); setStep(3);
+    const request = buildAgentRequest();
+    const result = await planWithAgent(request);
+    setAgentPlan(result); setAgentRequest(request); setActiveScenarios([]); setAgentDraft(null); setSupportDraft(null);
+    const hospital = agentCtx?.hospital;
+    if (hospital?.lat) changeDestination({ latitude: hospital.lat, longitude: hospital.lon, label: `${result.entrance.name}, ${hospital.name}` });
+    setStep(3);
   });
 
-  const replan = () => run(async () => {
-    if (!journeyPayload) throw new Error("Plan a journey first.");
-    const payload = { journey: journeyPayload, disruption: { unavailable_route_ids: ["demo-direct"], delay_minutes_by_route: {} } };
-    const result = await api("/api/v1/journeys/reassess", { method: "POST", body: JSON.stringify(payload) });
-    const draft = await api("/api/v1/support/draft", { method: "POST", body: JSON.stringify(payload) });
-    setPlan(result); setSupportDraft(draft); setReviewed(false); setStep(4);
-  });
 
   const search = kind => run(async () => {
     setSearchKind(kind);
@@ -313,7 +272,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const deleteAppointment = () => run(async () => {
     await api("/api/v1/workspace", { method: "PATCH", body: JSON.stringify({ appointment: null }) });
     setAppointment(initialAppointment()); setConfirmed(false); setFilename(""); setExtractionWarnings([]);
-    setPlan(null); setJourneyPayload(null); setSupportDraft(null); setMessage("Saved appointment removed.");
+    setSupportDraft(null); setMessage("Saved appointment removed.");
   });
 
   const authenticate = event => {
@@ -324,7 +283,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
       setProfile(result); setSignedIn(true); setPassword(""); setPage("profile");
       const saved = await api("/api/v1/workspace");
       setAppointment(saved.appointment || { ...initialAppointment(), hospital_id: result.default_hospital_id, origin: result.default_starting_address || "" });
-      setConfirmed(false); setPlan(null); setJourneyPayload(null); setSupportDraft(null);
+      setConfirmed(false); setSupportDraft(null);
       setMessage(authMode === "register" ? "Account created. Your preferences are saved." : "You are signed in.");
     });
   };
@@ -332,12 +291,11 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   return <>
     <header className="nhs-header py-3 px-3 mb-3">
       <div className="max-w-wide mx-auto d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div><h1 className="h4 mb-1">AccessRoute Sheffield</h1><span className="small">Hospital journey assistant · hackathon prototype</span></div>
+        <div><h1 className="h4 mb-1">AccessRoute AI Journey Planner</h1><span className="small">Accessible journeys to the Royal Hallamshire Hospital, planned by a local AI agent on NVIDIA DGX Spark · hackathon prototype</span></div>
         <span className="spark-badge">API: {health ? "Online" : "Connecting"} · Letter model: {model} · AI agent: {agentStatus}</span>
       </div>
     </header>
     <div className="app-container-wide px-3">
-      <p className="small">Royal Hallamshire journeys are planned by the local AI agent. <a href="/agent.html">Open the standalone agent console →</a></p>
       <nav className="account-nav" aria-label="Main navigation">{[["journey", "Your journey"], ["profile", "Profile"], ["settings", "Settings"], ["auth", signedIn ? "Account" : "Sign in / Register"]].map(([id, label]) => <button key={id} type="button" className={`btn ${page === id ? "btn-primary" : "btn-outline-primary"}`} aria-current={page === id ? "page" : undefined} onClick={() => openPage(id)}>{label}</button>)}</nav>
       {error && <div className="alert alert-danger" role="alert">{error}</div>}
       {message && <div className="alert alert-success" role="status">{message}</div>}
@@ -345,7 +303,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
 
       {page === "auth" && <section className="card shadow-sm"><div className="card-body">
         {signedIn ? <><h2 className="h4">You are signed in</h2><p>{profile.first_name} {profile.last_name} · {profile.email}</p><button className="btn btn-outline-danger btn-accessible" disabled={busy} onClick={() => run(async () => {
-          await api("/api/v1/auth/logout", { method: "POST" }); setSignedIn(false); setProfile(emptyProfile()); setPassword(""); setPlan(null); setJourneyPayload(null); setSupportDraft(null);
+          await api("/api/v1/auth/logout", { method: "POST" }); setSignedIn(false); setProfile(emptyProfile()); setPassword(""); setSupportDraft(null);
           setAppointment(initialAppointment()); setConfirmed(false); setFilename(""); setExtractionWarnings([]); setNavigation(null); setLocation(null); setOriginPoint(null); setDestination(null);
           if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
           watchId.current = null; setTracking(false); setLocationMessage("");
@@ -358,7 +316,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
             {authMode === "register" && <div className="row"><div className="col-sm-6"><Field label="First name"><input required autoComplete="given-name" className="form-control form-control-lg-accessible" value={profile.first_name} onChange={e => changeProfileField("first_name", e.target.value)} /></Field></div><div className="col-sm-6"><Field label="Surname"><input required autoComplete="family-name" className="form-control form-control-lg-accessible" value={profile.last_name} onChange={e => changeProfileField("last_name", e.target.value)} /></Field></div></div>}
             <Field label="Email"><input required type="email" autoComplete="email" className="form-control form-control-lg-accessible" value={profile.email} onChange={e => changeProfileField("email", e.target.value)} /></Field>
             <Field label={authMode === "register" ? "Password (at least 10 characters)" : "Password"}><input required type="password" minLength={authMode === "register" ? 10 : 1} autoComplete={authMode === "register" ? "new-password" : "current-password"} className="form-control form-control-lg-accessible" value={password} onChange={e => setPassword(e.target.value)} /></Field>
-            {authMode === "register" && <><NeedsForm profile={profile} setProfile={setProfile} presets={presets} /><Field label="Usual hospital"><select className="form-select form-select-lg-accessible" value={profile.default_hospital_id} onChange={e => changeProfileField("default_hospital_id", e.target.value)}><option value="royal-hallamshire">Royal Hallamshire Hospital (AI agent)</option><option value="northern-general-demo">Northern General Hospital (demo)</option></select></Field></>}
+            {authMode === "register" && <><NeedsForm profile={profile} setProfile={setProfile} presets={presets} /><Field label="Usual hospital"><select className="form-select form-select-lg-accessible" value={profile.default_hospital_id} onChange={e => changeProfileField("default_hospital_id", e.target.value)}><option value="royal-hallamshire">Royal Hallamshire Hospital</option></select></Field></>}
             <button disabled={busy} className="btn btn-primary btn-accessible w-100">{authMode === "register" ? "Create account" : "Sign in"}</button>
           </form><button type="button" className="btn btn-link mt-2" onClick={() => openPage("journey")}>Continue without an account</button>
         </>}
@@ -371,7 +329,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
           <Field label="Surname"><input required={signedIn} className="form-control form-control-lg-accessible" value={profile.last_name} onChange={e => changeProfileField("last_name", e.target.value)} /></Field>
           <Field label="Email"><input type="email" required={signedIn} className="form-control form-control-lg-accessible" value={profile.email} onChange={e => changeProfileField("email", e.target.value)} /></Field>
           <Field label="Usual starting address (optional)"><input autoComplete="street-address" maxLength={500} className="form-control form-control-lg-accessible" value={profile.default_starting_address || ""} onChange={e => changeProfileField("default_starting_address", e.target.value)} /></Field>
-          <Field label="Usual hospital"><select className="form-select form-select-lg-accessible" value={profile.default_hospital_id} onChange={e => changeProfileField("default_hospital_id", e.target.value)}><option value="royal-hallamshire">Royal Hallamshire Hospital (AI agent)</option><option value="northern-general-demo">Northern General Hospital (demo)</option></select></Field>
+          <Field label="Usual hospital"><select className="form-select form-select-lg-accessible" value={profile.default_hospital_id} onChange={e => changeProfileField("default_hospital_id", e.target.value)}><option value="royal-hallamshire">Royal Hallamshire Hospital</option></select></Field>
           <NeedsForm profile={profile} setProfile={setProfile} presets={presets} />
           <button className="btn btn-primary btn-accessible w-100" disabled={busy}>Save profile</button>
         </form>
@@ -398,15 +356,15 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
           <Field label="Appointment letter (JPEG or PNG, up to 10 MB)"><input className="form-control" type="file" accept="image/jpeg,image/png" disabled={busy} onChange={upload} /></Field>
           {filename && <p className="small">Selected: {filename}</p>}{extractionWarnings.length > 0 && <ul className="alert alert-warning">{extractionWarnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>}
           <form onSubmit={event => { event.preventDefault(); if (confirmed) setStep(2); }}>
-            <Field label="Hospital"><select required className="form-select form-select-lg-accessible" value={appointment.hospital_id} onChange={e => changeAppointment("hospital_id", e.target.value)}><option value="">Choose a hospital</option>{(hospitals.length ? hospitals : [{ id: AGENT_HOSPITAL, name: "Royal Hallamshire Hospital" }, { id: "northern-general-demo", name: "Northern General Hospital (demo)" }]).map(hospital => <option key={hospital.id} value={hospital.id}>{hospital.name}</option>)}</select></Field>
+            <Field label="Hospital"><select required className="form-select form-select-lg-accessible" value={appointment.hospital_id} onChange={e => changeAppointment("hospital_id", e.target.value)}><option value="">Choose a hospital</option>{(hospitals.length ? hospitals : [{ id: AGENT_HOSPITAL, name: "Royal Hallamshire Hospital" }]).map(hospital => <option key={hospital.id} value={hospital.id}>{hospital.name}</option>)}</select></Field>
             <Field label="Department / clinic"><input required maxLength={150} className="form-control form-control-lg-accessible" value={appointment.department} onChange={e => changeAppointment("department", e.target.value)} /></Field>
             <div className="row"><div className="col-sm-6"><Field label="Appointment date"><input required type="date" className="form-control form-control-lg-accessible" value={appointment.date} onChange={e => changeAppointment("date", e.target.value)} /></Field></div><div className="col-sm-6"><Field label="Required arrival time (UK time)"><input required type="time" className="form-control form-control-lg-accessible" value={appointment.arrival} onChange={e => changeAppointment("arrival", e.target.value)} /></Field></div></div>
             <Field label="Starting address"><input required autoComplete="street-address" className="form-control form-control-lg-accessible" placeholder="Enter your address or use your location" value={appointment.origin} onChange={e => changeAppointment("origin", e.target.value)} /></Field>
             <button type="button" className="btn btn-outline-primary btn-accessible w-100 mb-2" disabled={busy} onClick={currentAddress}>Use my current location</button>
             <p className="small text-muted">With your permission, your coordinates are sent to OpenStreetMap / Nominatim once to find a nearby address. Check it before continuing.</p>
             {locationMessage && <p className="small" role="status">{locationMessage}</p>}
-            {isAgentHospital && <Field label="Starting area with checked route data (used by the AI agent)"><select className="form-select form-select-lg-accessible" value={areaId} onChange={e => { setAreaId(e.target.value); setAreaNote(""); setAgentPlan(null); }}>{(agentCtx?.origins || [{ id: "walkley", name: "Walkley (S6)" }]).map(area => <option key={area.id} value={area.id}>{area.name}</option>)}</select></Field>}
-            {isAgentHospital && areaNote && <p className="small" role="status">{areaNote}</p>}
+            {<Field label="Starting area with checked route data (used by the AI agent)"><select className="form-select form-select-lg-accessible" value={areaId} onChange={e => { setAreaId(e.target.value); setAreaNote(""); setAgentPlan(null); }}>{(agentCtx?.origins || [{ id: "walkley", name: "Walkley (S6)" }]).map(area => <option key={area.id} value={area.id}>{area.name}</option>)}</select></Field>}
+            {areaNote && <p className="small" role="status">{areaNote}</p>}
             <label className="need-toggle"><input required type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} /> I have checked the hospital, date and arrival time.</label>
             {signedIn ? <div className="d-flex flex-wrap gap-2 mb-3"><button type="button" disabled={busy} className="btn btn-outline-primary" onClick={saveAppointment}>Save appointment to my account</button><button type="button" disabled={busy} className="btn btn-outline-danger" onClick={deleteAppointment}>Remove saved appointment</button></div> : <p className="small"><button type="button" className="btn btn-link p-0" onClick={() => openPage("auth")}>Sign in</button> to save appointment details across visits.</p>}
             <button className="btn btn-primary btn-accessible w-100" disabled={busy}>Continue to access needs →</button>
@@ -420,20 +378,20 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
             setProfile(previous => ({ ...previous, access: { ...previous.access, max_continuous_walking_m: distance, max_total_walking_m: distance * 2 } }));
           }} /> I prefer very short distances and frequent rests</label>
           <label className="need-toggle"><input type="checkbox" checked={profile.access.boarding_buffer_minutes > 3} onChange={e => updateAccess("boarding_buffer_minutes", e.target.checked ? 5 : profile.access.wheelchair_user ? 3 : 0)} /> Give me extra time to get on and off</label>
-          {isAgentHospital && <fieldset className="mb-3"><legend className="h6 mt-2">For this Royal Hallamshire journey</legend>
+          {<fieldset className="mb-3"><legend className="h6 mt-2">For this Royal Hallamshire journey</legend>
             {AGENT_EXTRAS.map(([key, label]) => <label key={key} className="need-toggle"><input type="checkbox" checked={agentExtras[key]} onChange={e => setAgentExtras(previous => ({ ...previous, [key]: e.target.checked }))} /> {label}</label>)}
           </fieldset>}
           <button className="btn btn-link mb-3" onClick={() => openPage("settings")}>Change detailed journey settings</button>
-          <button className="btn btn-primary btn-accessible w-100 mb-2" disabled={busy} onClick={planJourney}>{busy && isAgentHospital ? "The AI agent is checking weather, roadworks, trams, buses and events…" : "Plan my journey →"}</button>
+          <button className="btn btn-primary btn-accessible w-100 mb-2" disabled={busy} onClick={planJourney}>{busy ? "The AI agent is checking weather, roadworks, trams, buses and events…" : "Plan my journey →"}</button>
           <button className="btn btn-outline-secondary btn-accessible w-100" onClick={() => setStep(1)}>Back to appointment</button>
         </div></section>}
 
         {step === 3 && <div className="d-flex flex-column gap-3">
-          {isAgentHospital && (agentPlan
+          {agentPlan
             ? <section aria-label="AI journey plan"><AgentResults plan={agentPlan} scenarios={agentCtx?.scenarios || []} active={activeScenarios}
                 onToggle={id => setActiveScenarios(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id])}
                 onReassess={agentReassess} onDraft={agentMakeDraft} busy={busy ? "working" : ""} draft={agentDraft} setDraft={setBothDrafts} /></section>
-            : <p className="alert alert-info">Confirm your appointment and choose “Plan my journey” to get the AI agent's plan.</p>)}
+            : <p className="alert alert-info">Confirm your appointment and choose “Plan my journey” to get the AI agent's plan.</p>}
           <section className="card shadow-sm"><div className="card-body"><h2 className="h4">Map and outdoor directions</h2>
             <p>Your blue marker moves as your device reports a new location. Directions are requested separately; they do not automatically replan.</p>
             <button className="btn btn-primary btn-accessible mb-2" onClick={toggleTracking}>{tracking ? "Stop live location" : "Start live location"}</button>
@@ -463,13 +421,11 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
             </div>}
           </div></section>
           <LiveConditions onRoadsGeoJson={setRoadOverlay} />
-          {!isAgentHospital && <section><h2 className="h4">Appointment journey prototype</h2><RouteResults result={plan} />{plan && <button className="btn btn-outline-danger btn-accessible w-100" disabled={busy} onClick={replan}>Simulate direct-route disruption →</button>}</section>}
           <details className="card p-3"><summary>Advanced: inspect demonstration GeoJSON layers</summary><p className="alert alert-warning small mt-2">These hand-authored Royal Hallamshire overlays are separate fictional examples, not a computed route or verified LiDAR/access survey. They do not follow your live position.</p><AdvancedMap geojsonData={geoJson} onImportGeoJson={setGeoJson} focusTarget={null} showDisruption={false} /></details>
         </div>}
 
         {step === 4 && <section className="card shadow-sm"><div className="card-body"><h2 className="h4">Travel support</h2><p>Review the simulated disruption and prepare a message. No request is sent from this prototype.</p>
-          {!isAgentHospital && <RouteResults result={plan} />}
-          {supportDraft ? <><Field label="Subject"><input className="form-control" value={supportDraft.subject} onChange={e => setSupportDraft(previous => ({ ...previous, subject: e.target.value }))} /></Field><Field label="Message draft"><textarea rows={14} className="form-control" value={supportDraft.body} onChange={e => setSupportDraft(previous => ({ ...previous, body: e.target.value }))} /></Field><button className="btn btn-primary btn-accessible" onClick={() => run(async () => { await navigator.clipboard.writeText(`${supportDraft.subject}\n\n${supportDraft.body}`); setMessage("Draft copied. Choose the recipient and review it before sending."); })}>Copy draft</button></> : isAgentHospital ? <button className="btn btn-outline-primary" onClick={() => setStep(3)}>Go to step 3: simulate a problem, re-plan, and choose a draft</button> : <button className="btn btn-outline-primary" disabled={busy || !journeyPayload} onClick={replan}>Run disruption example and prepare draft</button>}
+          {supportDraft ? <><Field label="Subject"><input className="form-control" value={supportDraft.subject} onChange={e => setSupportDraft(previous => ({ ...previous, subject: e.target.value }))} /></Field><Field label="Message draft"><textarea rows={14} className="form-control" value={supportDraft.body} onChange={e => setSupportDraft(previous => ({ ...previous, body: e.target.value }))} /></Field><button className="btn btn-primary btn-accessible" onClick={() => run(async () => { await navigator.clipboard.writeText(`${supportDraft.subject}\n\n${supportDraft.body}`); setMessage("Draft copied. Choose the recipient and review it before sending."); })}>Copy draft</button></> : <button className="btn btn-outline-primary" onClick={() => setStep(3)}>Go to step 3: simulate a problem, re-plan, and choose a draft</button>}
         </div></section>}
 
         {step === 5 && <section className="card shadow-sm"><div className="card-body"><span className="badge bg-warning text-dark mb-2">Staff view · local demonstration only</span><h2 className="h4">Travel-support review</h2><p>This preview does not notify hospital staff, dispatch vehicles or send messages.</p>

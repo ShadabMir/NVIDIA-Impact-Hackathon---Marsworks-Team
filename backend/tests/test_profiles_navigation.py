@@ -110,14 +110,3 @@ def test_navigation_provider_contract_and_distance_warnings(client, monkeypatch)
     assert data["exceeds_total_distance"] is True
     assert len(data["warnings"]) == 2
     assert data["steps"][0]["coordinate"] == [-1.49, 53.39]
-
-
-def test_slope_and_boarding_allowance_change_assessment(client):
-    payload = {"appointment": {"hospital_id": "northern-general-demo", "department": "Demo",
-                              "arrive_by": "2026-11-20T10:00:00+00:00", "confirmed_by_user": True},
-               "access": {"step_free_required": True, "max_gradient_percent": 5, "boarding_buffer_minutes": 3}}
-    data = client.post("/api/v1/journeys/plan", json=payload).json()
-    assert data["recommended_route_id"] == "demo-direct"
-    assert data["assessments"][0]["leave_at"] == "2026-11-20T09:12:00Z"
-    payload["access"]["max_gradient_percent"] = 3
-    assert client.post("/api/v1/journeys/plan", json=payload).json()["recommended_route_id"] is None

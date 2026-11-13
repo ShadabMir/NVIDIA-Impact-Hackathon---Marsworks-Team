@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/workspace", tags=["Saved forms"])
 
 
 class AppointmentForm(StrictModel):
-    hospital_id: Literal["royal-hallamshire", "northern-general-demo"]
+    hospital_id: Literal["royal-hallamshire"]
     department: str = Field(min_length=1, max_length=150)
     date: CalendarDate
     arrival: str = Field(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")

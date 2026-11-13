@@ -1,25 +1,19 @@
-# AccessRoute agent — Royal Hallamshire (Margaret persona)
+# The journey agent: AccessRoute AI Journey Planner
 
-Merged with the profile/map application: agent endpoints remain under `/api/v1/agent/*`, with
-the agent demonstration at `/agent.html` and the profile/settings/map interface at `/`.
-Both pages are included in the production build and use the same API proxy. The signed-in account is shared. The agent can apply the saved profile
-distance, slope and step-free preferences, and save/restore its own typed form. The
-Royal Hallamshire and Northern General appointment forms remain separate hospital scenarios.
+The agent plans every journey in the app (`/`). Its endpoints are under `/api/v1/agent/*`.
 
-## In the combined app
+## How the app uses it
 
-On `/`, choosing the Royal Hallamshire (the default) sends **Plan my journey** to
-`/api/v1/agent/plan`:
+**Plan my journey** sends `/api/v1/agent/plan`:
 
-- **Needs:** taken from the saved profile, using the same `profileNeeds` mapping as `agent.html`.
+- **Needs:** taken from the saved profile (`src/agent/profileNeeds.js`), plus the journey extras
+  (toilets, crowds, taxi).
 - **Start area:** the nearest area with checked route data to the GPS or searched address,
   within 2.5 km. Otherwise "Somewhere else", and the agent replies "I don't know".
-- **Results:** shown with the shared `src/agent/AgentResults.jsx`, including Dexi's read-aloud
-  (`src/tts/speak.js`).
-- **Map:** the hospital is set as the destination.
-- **Drafts:** shown in Support and in the Staff demo.
-
-Northern General keeps the original rule-based planner.
+- **Results:** shown by `src/agent/AgentResults.jsx`: recommendation with read-aloud
+  (`src/tts/speak.js`), DGX Spark stats, routes, trace, disruption scenarios and drafts.
+- **Map:** the destination is set to the recommended entrance.
+- **Drafts:** appear in Support and in the Staff demo.
 
 ## What the agent does
 
@@ -74,19 +68,23 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5173/agent.html**. Sami's original screens stay at http://localhost:5173/.
+Open **http://localhost:5173/**.
 
 If the API runs on the Spark itself, keep `OLLAMA_BASE_URL=http://127.0.0.1:11434`.
 
 ## Demo script (about 3 minutes)
 
-1. Margaret's details are pre-filled. Click **Plan my journey**. Bus 95 is recommended; the tram
-   route is rejected (12.5% Howard Road and the closed Western Bank pavement).
-2. Open **What the agent did** to show Nemotron's tool calls on the Spark.
-3. Select **Pavement blocked on Beech Hill Road** and click **Re-plan**. No public route is safe,
+1. **Appointment:** upload a synthetic letter (Qwen reads it on the Spark), or keep the example.
+   Use Walkley as the start, confirm, and continue.
+2. **Access needs:** these load from Margaret's profile (powered wheelchair). Click **Plan my
+   journey**. Bus 95 is recommended; the tram route is rejected (12.5% Howard Road and the closed
+   Western Bank pavement). Click **Read aloud**, and point out the DGX Spark stats panel.
+3. Open **What the agent did** to show Nemotron's tool calls on the Spark.
+4. Select **Pavement blocked on Beech Hill Road** and click **Re-plan**. No public route is safe,
    so the agent switches to an accessible taxi and offers drafts.
-4. Click **Draft a blocked-pavement report**, edit it and copy it. Nothing is sent.
-5. Try **Icy pavements** or **Trams suspended** with the Hillsborough origin.
+5. Click **Draft a transport-support request**, then show it in **4. Support** and the **Staff
+   demo**. Nothing is sent.
+6. Show the map (destination already set to the entrance) and the evaluation table.
 
 ## Data status
 
@@ -113,7 +111,7 @@ Next real sources (see the datasets doc):
   before a demo.
 - **Context:** the largest agent prompt is about 2,000 tokens, within the 8,192-token limit.
 - **Local compute shown:** each plan returns `model_stats` (model calls, tokens in/out, tokens
-  per second, model time and load time, from Ollama's own counters). `agent.html` shows it in
+  per second, model time and load time, from Ollama's own counters). The app shows it in
   the green panel.
 
 ## Evaluation

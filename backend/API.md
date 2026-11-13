@@ -2,23 +2,61 @@
 
 Base URL: `http://SPARK_IP:8000` (use `http://localhost:8000` only on the API machine).
 
-All successful responses below return HTTP 200. POST/PUT requests use `application/json`, except the image upload. Unknown JSON fields are rejected. Registration/login and saved profiles are implemented; saved journeys, background monitoring and automatic message sending are not. Keep journey state in React and resend it for reassessment/support. The Vite frontend defaults to `/backend` as a same-origin proxy; use `credentials: 'include'` for account calls.
+All successful responses below return HTTP 200. POST/PUT requests use `application/json`, except the image upload. Unknown JSON fields are rejected. Registration/login and saved profiles are implemented; saved journeys, background monitoring and automatic message sending are not. Keep the agent request in React and resend it for re-planning and drafts. The Vite frontend defaults to `/backend` as a same-origin proxy; use `credentials: 'include'` for account calls.
 
 Interactive schema: `/docs`. Machine-readable schema: `/openapi.json`.
 
-## Royal Hallamshire agent routes (merged branch)
+## Journey agent: /api/v1/agent/*
 
-The separate `/agent.html` page uses `/api/v1/agent/health`, `/context`, `/plan`, `/reassess` and `/draft` under the `/api/v1/agent` prefix. See [AGENT.md](../AGENT.md) and `/docs` for the different request/response schemas. The agent uses Royal Hallamshire fixtures rather than the original Northern General journey schema. This merge preserves both interfaces without silently treating their preferences or hospital IDs as interchangeable.
+The app plans every journey with the Nemotron agent. See [AGENT.md](../AGENT.md) for how it
+works, and `/docs` for the full schemas.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/agent/health` | Is the agent model (`OLLAMA_AGENT_MODEL`) reachable and installed? |
+| POST | `/api/v1/agent/warmup` | Load the model on the Spark and keep it loaded (before a demo) |
+| GET | `/api/v1/agent/context` | Start areas (with coordinates), hospital and entrances, disruption scenarios |
+| POST | `/api/v1/agent/plan` | Plan: `{origin_id, appointment, needs, disruptions, earliest_departure, use_model}` |
+| POST | `/api/v1/agent/reassess` | `{request, disruptions, earliest_departure}`: re-plan with problems added |
+| POST | `/api/v1/agent/draft` | `{kind, request, location, details, use_model}`: reviewable message; never sends |
+
+Example plan request (the app builds `needs` from the saved profile):
+
+```json
+{
+  "origin_id": "walkley",
+  "appointment": {
+    "hospital_id": "royal-hallamshire",
+    "department": "Neuro-Rehabilitation Outpatients",
+    "arrive_by": "2026-11-16T10:15:00+00:00",
+    "confirmed_by_user": true
+  },
+  "needs": {"mobility_aid": "powered_wheelchair", "max_gradient_pct": 5, "needs_accessible_toilet": true},
+  "use_model": true
+}
+```
+
+The response includes:
+
+- `recommendation`: `option_id`, `summary`, `reasons`, `tips` and `generated_by`.
+- `options`: each route's status (`suitable`, `caution` or `unsuitable`), leave time, legs and
+  barriers.
+- `support_needed` and `suggested_actions` (which drafts to offer).
+- `weather`, `toilets`, `entrance` and `agent_steps` (the tool-call trace).
+- `model_stats` (calls, tokens, tokens per second) and `agent_mode`.
+
+`origin_id: "elsewhere"` (no route data) returns `option_id: null` with an "I don't know" summary.
+Draft kinds are `blocked_pavement_report`, `hospital_transport_request` and `operator_feedback`.
 
 ## 1. Connection indicator — GET /health
 
 Call on app startup or from a connection-check button. No body.
 
 ```json
-{"status":"ok","routing_mode":"demo","model_configured":false}
+{"status":"ok","routing_mode":"agent","model_configured":false,"live_navigation_configured":false}
 ```
 
-`model_configured` only means a model name was set, not that inference works. Routing remains usable if extraction is unavailable.
+`model_configured` only means a letter-reading model name was set, not that inference works. Journey planning remains usable if extraction is unavailable.
 
 ## 2. Model status — GET /health/model
 
@@ -34,7 +72,7 @@ Returns 503 if unconfigured, unavailable or missing. Test a letter separately to
 
 Call when loading the appointment confirmation screen. No body. Returns an array; each item has `id`, `name`, `data_status` and `notice`.
 
-Currently only `northern-general-demo` is supported. Display the name but send the ID. Do not use extracted free-text hospital names directly as IDs; let the user select/confirm a supported hospital.
+Only `royal-hallamshire` is supported (the agent has route data for it). Display the name but send the ID. Do not use extracted free-text hospital names directly as IDs; let the user select/confirm a supported hospital.
 
 ## 4. Upload screen — POST /api/v1/appointments/extract
 
@@ -53,9 +91,9 @@ Example response (illustrative extracted values):
 ```json
 {
   "details": {
-    "hospital": "Northern General Hospital",
-    "department": "Demo outpatient department",
-    "appointment_date": "2026-11-20",
+    "hospital": "Royal Hallamshire Hospital",
+    "department": "Neuro-Rehabilitation Outpatients",
+    "appointment_date": "2026-11-16",
     "appointment_time": "10:15:00",
     "arrival_time": "10:00:00",
     "warnings": []
@@ -68,87 +106,10 @@ Example response (illustrative extracted values):
 
 All extracted fields except `warnings` may be null. Populate editable fields, show warnings and request confirmation. Offer manual entry if extraction fails. Combine the confirmed date and arrival time into timezone-aware `arrive_by` for planning; if no arrival time is present, ask the user rather than inventing one. Configure the model server on Spark to keep inference local.
 
-## 5. Access form / journey results — POST /api/v1/journeys/plan
+## 5. Journey planning, re-planning and support drafts
 
-Call after appointment confirmation and completion of access requirements. Example body, referred to below as `journeyPayload`:
-
-```json
-{
-  "origin_id": "demo-home",
-  "appointment": {
-    "hospital_id": "northern-general-demo",
-    "department": "Demo outpatient department",
-    "arrive_by": "2026-11-20T10:00:00+00:00",
-    "confirmed_by_user": true
-  },
-  "access": {
-    "wheelchair_user": false,
-    "step_free_required": true,
-    "max_continuous_walking_m": 150,
-    "max_total_walking_m": 300,
-    "min_transfer_minutes": 10
-  }
-}
-```
-
-Only the demo origin ID is supported; arbitrary addresses and GPS routing are not connected. The appointment fields are required. `origin_id` and `access` have defaults, but the frontend should submit the patient's explicit choices. Walking limits accept zero. Wheelchair use also enforces a step-free check. Department length: 1–150 characters. Distance limits: continuous 0–10,000 m; total 0–20,000 m; transfer time 0–120 minutes.
-
-Response fields:
-
-| Field | Frontend behaviour |
-| --- | --- |
-| `data_status` | Currently `simulated`; show a demo badge. |
-| `notice` | Display the fixture-data limitation. |
-| `recommended_route_id` | Highlight the matching item in `assessments`; may be null. |
-| `support_needed` | If true, offer a travel-support draft. This is not an eligibility decision. |
-| `assessments` | Render one card per assessed route, including rejected options if useful. |
-
-Each assessment contains:
-
-- `route`: `id`, `title`, `entrance`, `duration_minutes`, `total_walking_m`, `max_continuous_walking_m`, `transfer_minutes`, nullable `step_free` and `wheelchair_accessible`, `legs`, `data_status`, and `sources`.
-- Each leg: `mode` (`walk`, `bus`, `transfer`), `instruction`, `duration_minutes`, `walking_distance_m`.
-- `status`: use the display mapping below.
-- `reasons`: failed checks; `unknowns`: unresolved access information.
-- `leave_at`, `arrive_at`: timezone-aware timestamps.
-
-| API status | Suggested label |
-| --- | --- |
-| `matches_demo_requirements` | Matches your requirements — demo data |
-| `needs_verification` | Accessibility information needs checking |
-| `rejected` | Does not meet your requirements / unavailable |
-
-`null` accessibility is unknown, never equivalent to true. The direct fixture normally matches the example; the shorter-transfer fixture fails it; the alternative has unknown access. A simulated match does not certify a real route as accessible.
-
-## 6. Disruption / replan button — POST /api/v1/journeys/reassess
-
-Send the original request inside `journey`, not the previous response. JavaScript payload construction:
-
-```javascript
-const reassessmentPayload = {
-  journey: journeyPayload,
-  disruption: {
-    unavailable_route_ids: ['demo-direct'],
-    delay_minutes_by_route: {},
-  },
-  earliest_departure: '2026-11-20T09:00:00+00:00',
-};
-```
-
-Use route IDs returned in assessments. Delays are maps such as `{"demo-direct":15}`; each delay must be 0–240 minutes. Unknown IDs return 422. `earliest_departure` is optional but should be supplied when checking feasibility from now or from a user-selected departure time. The response has the same shape as journey planning, so reuse the result component.
-
-There is no live disruption subscription or polling source yet; this endpoint evaluates a supplied scenario. Delays adjust whole-route duration, not individual leg instructions; display updated elapsed duration from `arrive_at - leave_at`. Per-leg times remain the baseline fixture values.
-
-## 7. Support screen — POST /api/v1/support/draft
-
-Accepts the same body as reassessment; `disruption` is optional here. The backend recalculates barriers from the supplied journey/scenario.
-
-Returns `subject` and `body` strings plus:
-
-```json
-{"sent":false,"generation_method":"template","requires_review":true,"data_status":"simulated"}
-```
-
-Display an editable subject/message with a copy button. This is a template draft, not an LLM-generated message. No recipient is resolved, no eligibility is promised and no message is sent. If a route matches, the draft says so rather than claiming no option exists.
+Use the agent routes above (`/plan`, `/reassess`, `/draft`). The earlier rule-based
+`/api/v1/journeys/*` and `/api/v1/support/draft` routes have been removed from this app.
 
 ## Errors and display rules
 
@@ -178,9 +139,9 @@ For a phone demo, use HTTPS (geolocation is unavailable over ordinary LAN HTTP) 
 | GET | `/api/v1/profile` | Current user's profile; 401 if not signed in. |
 | PUT | `/api/v1/profile` | Replace own profile; requires cookie. Returns saved profile. |
 
-Profile fields: `first_name`, `last_name`, `email`, `default_hospital_id` (currently `northern-general-demo`), `mobility_aid`, and `access`. Mobility aid: `manual_wheelchair`, `powered_wheelchair`, `walking_aid`, `limited_mobility`, or `no_aid`. Access fields are the existing journey fields plus nullable `max_gradient_percent` (0–15) and `boarding_buffer_minutes` (0–30). The preset uses 5% and 3 minutes respectively for wheelchairs, with assumptions disclosed in Settings. Changing the mobility aid resets suggested values in the UI; users can override them.
+Profile fields: `first_name`, `last_name`, `email`, `default_hospital_id` (currently `royal-hallamshire`), `mobility_aid`, and `access`. Mobility aid: `manual_wheelchair`, `powered_wheelchair`, `walking_aid`, `limited_mobility`, or `no_aid`. Access fields are the existing journey fields plus nullable `max_gradient_percent` (0–15) and `boarding_buffer_minutes` (0–30). The preset uses 5% and 3 minutes respectively for wheelchairs, with assumptions disclosed in Settings. Changing the mobility aid resets suggested values in the UI; users can override them.
 
-These access fields are accepted by journey planning and reassessment. Known simulated slopes are compared against the preference; missing gradients stay unknown. Boarding buffer is added once per bus leg to overall journey duration. Use `arrive_at - leave_at` for total planned elapsed time; fixture leg times remain baseline.
+The app turns these into the agent's `needs` (`src/agent/profileNeeds.js`): slope becomes `max_gradient_pct`, the two distances become roll limits, and transfer plus boarding time becomes `extra_minutes`.
 
 Profile also accepts `default_starting_address` (optional string, up to 500 characters). Existing profiles load with an empty value until edited. No password/session reset is needed.
 

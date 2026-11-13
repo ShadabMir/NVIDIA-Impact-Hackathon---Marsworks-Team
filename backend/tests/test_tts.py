@@ -5,7 +5,7 @@ import httpx
 from fastapi.testclient import TestClient
 
 from app import tts
-from app.main_tts import app
+from app.main import app
 
 client = TestClient(app)
 
@@ -83,4 +83,4 @@ def test_health_ready(monkeypatch):
 
 def test_existing_routes_still_present():
     paths = set(client.get("/openapi.json").json()["paths"])
-    assert {"/health", "/api/v1/journeys/plan", "/api/v1/tts", "/api/v1/tts/health"} <= paths
+    assert {"/health", "/api/v1/agent/plan", "/api/v1/tts", "/api/v1/tts/health"} <= paths

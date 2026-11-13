@@ -23,7 +23,7 @@ def register(client, email="first@example.test"):
 
 
 def appointment():
-    return {"hospital_id": "northern-general-demo", "department": "Demo clinic",
+    return {"hospital_id": "royal-hallamshire", "department": "Demo clinic",
             "date": "2026-11-20", "arrival": "10:00", "origin": "Fictional starting address"}
 
 

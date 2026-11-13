@@ -238,7 +238,7 @@ def test_eval_cases_pass_with_rules():
 
 def test_combined_app_backend_wiring():
     ids = [h["id"] for h in client.get("/api/v1/hospitals").json()]
-    assert ids[0] == "royal-hallamshire" and "northern-general-demo" in ids
+    assert ids == ["royal-hallamshire"]
     ctx = client.get("/api/v1/agent/context").json()
     assert ctx["hospital"]["lat"] and ctx["hospital"]["lon"]
     plan = client.post("/api/v1/agent/plan", json={**MARGARET, "origin_id": "elsewhere"}).json()

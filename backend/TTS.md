@@ -3,15 +3,13 @@
 Adds spoken output using a speech model running **on the DGX Spark**. If the Spark model is not
 reachable, the frontend falls back to the browser's own voice, so the demo never goes silent.
 
-This branch only **adds** files. No existing file was changed:
+In the app, the **Read aloud** button on the journey recommendation uses this.
 
 | File | Purpose |
 | --- | --- |
-| `backend/app/tts.py` | `POST /api/v1/tts` and `GET /api/v1/tts/health` |
-| `backend/app/main_tts.py` | The existing API plus the TTS routes |
+| `backend/app/tts.py` | `POST /api/v1/tts` and `GET /api/v1/tts/health` (included in `app.main`) |
 | `backend/tests/test_tts.py` | Tests with a fake speech server |
 | `src/tts/speak.js` | `speak(text)` helper: Spark first, browser voice as fallback |
-| `src/tts/TtsDemo.jsx`, `src/tts/main.jsx`, `tts.html` | Test page at `/tts.html` |
 
 ## 1. Start the speech model on the Spark (Chatterbox NIM)
 
@@ -56,11 +54,11 @@ TTS_BASE_URL=http://127.0.0.1:9000
 If the API runs on a laptop, open an SSH tunnel to the Spark's port 9000 and keep
 `TTS_BASE_URL=http://127.0.0.1:9000`.
 
-Start the API with `main_tts` instead of `main` (every existing route still works):
+Start the API as usual (the TTS routes are included):
 
 ```sh
 cd backend
-python -m uvicorn app.main_tts:app --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --port 8000
 ```
 
 Check: `GET http://localhost:8000/api/v1/tts/health`.
@@ -71,10 +69,10 @@ Check: `GET http://localhost:8000/api/v1/tts/health`.
 npm run dev
 ```
 
-Open `http://localhost:5173/tts.html`, press **Listen**. The page says whether the Spark
-model or the browser voice spoke.
+Open `http://localhost:5173/`, plan a journey and press **Read aloud** on the recommendation.
+Without the speech model on the Spark, the browser's own voice is used.
 
-## 4. Use it in the app (later, when the team agrees)
+## 4. Use it elsewhere in the app
 
 ```javascript
 import { speak, stopSpeaking } from "./tts/speak";
