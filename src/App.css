@@ -63,7 +63,7 @@ body {
   display: inline-block;
 }
 
-/* Google Maps-like Interactive Container */
+/* Interactive Map Container */
 .gmap-wrapper {
   position: relative;
   border-radius: 16px;
@@ -79,55 +79,6 @@ body {
   z-index: 1;
 }
 
-.gmap-top-overlay {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  right: 10px;
-  z-index: 500;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(6px);
-  border-radius: 12px;
-  padding: 8px 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  font-size: 0.82rem;
-}
-
-.gmap-pill-bar {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 8px 10px;
-  background: #ffffff;
-  border-top: 1px solid #e2e8f0;
-}
-
-.gmap-pill {
-  border: 1.5px solid #cbd5e1;
-  background: #f8fafc;
-  color: #1e293b;
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.gmap-pill.active-safe {
-  background: #dcfce7;
-  border-color: #16a34a;
-  color: #14532d;
-}
-
-.gmap-pill.active-rejected {
-  background: #fee2e2;
-  border-color: #dc2626;
-  color: #7f1d1d;
-}
-
-/* Custom Map Emoji Pins */
 .custom-map-pin {
   display: flex;
   align-items: center;
@@ -164,7 +115,7 @@ body {
   border-top: 2px solid #d8dde0;
   z-index: 1000;
   padding: 8px 12px;
-} 
+}
 
 /* QGIS Web GIS Layer Control & Attribute Styling */
 .qgis-layer-panel {
@@ -183,4 +134,27 @@ body {
   color: #38bdf8;
   padding: 2px 6px;
   border-radius: 4px;
+}
+
+/* Live Weather & Live Roads Cards */
+.weather-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.liveroads-card {
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.liveroads-attribution {
+  font-size: 0.76rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: 6px 10px;
+  border-radius: 8px;
 }
