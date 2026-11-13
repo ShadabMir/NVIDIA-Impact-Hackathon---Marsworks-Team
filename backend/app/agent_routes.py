@@ -60,7 +60,7 @@ def context():
     h = sh.hospital()
     return {
         "notice": sh.NOTICE,
-        "hospital": {k: h[k] for k in ("id", "name", "address", "access_guide_url", "entrances")},
+        "hospital": {k: h[k] for k in ("id", "name", "address", "lat", "lon", "access_guide_url", "entrances")},
         "origins": sh.origins(),
         "scenarios": sh.scenarios(),
     }

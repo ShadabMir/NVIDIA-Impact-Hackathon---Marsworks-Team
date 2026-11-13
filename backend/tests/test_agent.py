@@ -234,3 +234,13 @@ def test_eval_cases_pass_with_rules():
     for c in CASES:
         plan = asyncio.run(agent.plan(AgentPlanRequest.model_validate({**c["request"], "use_model": False}), settings))
         assert check(plan, c["expect"]) == [], c["name"]
+
+
+def test_combined_app_backend_wiring():
+    ids = [h["id"] for h in client.get("/api/v1/hospitals").json()]
+    assert ids[0] == "royal-hallamshire" and "northern-general-demo" in ids
+    ctx = client.get("/api/v1/agent/context").json()
+    assert ctx["hospital"]["lat"] and ctx["hospital"]["lon"]
+    plan = client.post("/api/v1/agent/plan", json={**MARGARET, "origin_id": "elsewhere"}).json()
+    assert plan["recommendation"]["option_id"] is None and "don't know" in plan["recommendation"]["summary"]
+    assert "/api/v1/tts" in client.get("/openapi.json").json()["paths"]  # TTS mounted on the main app

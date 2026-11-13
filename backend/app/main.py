@@ -20,6 +20,8 @@ from app.services.journeys import NOTICE, load_routes, plan_journey
 from app.profiles import router as profile_router
 from app.navigation import router as navigation_router
 from app.workspace import router as workspace_router
+from app.tts import router as tts_router
+from app.services.sheffield import NOTICE as SHEFFIELD_NOTICE
 
 settings = get_settings()
 
@@ -42,6 +44,7 @@ app.include_router(profile_router)
 app.include_router(navigation_router)
 app.include_router(agent_router)
 app.include_router(workspace_router)
+app.include_router(tts_router)  # Dexi's text-to-speech (/api/v1/tts), browser voice fallback in the UI
 
 
 @app.get("/health", tags=["System"])
@@ -69,7 +72,11 @@ async def model_health():
 
 @app.get("/api/v1/hospitals", response_model=list[Hospital], tags=["Hospitals"])
 def hospitals():
-    return [Hospital(id="northern-general-demo", name="Northern General Hospital (demo)", notice=NOTICE)]
+    return [
+        # Royal Hallamshire journeys are planned by the Nemotron agent (/api/v1/agent/*).
+        Hospital(id="royal-hallamshire", name="Royal Hallamshire Hospital", notice=SHEFFIELD_NOTICE),
+        Hospital(id="northern-general-demo", name="Northern General Hospital (demo)", notice=NOTICE),
+    ]
 
 
 @app.post("/api/v1/appointments/extract", response_model=ExtractionResponse, tags=["Appointments"])

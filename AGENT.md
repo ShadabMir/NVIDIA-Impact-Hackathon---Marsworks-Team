@@ -6,6 +6,21 @@ Both pages are included in the production build and use the same API proxy. The 
 distance, slope and step-free preferences, and save/restore its own typed form. The
 Royal Hallamshire and Northern General appointment forms remain separate hospital scenarios.
 
+## In the combined app
+
+On `/`, choosing the Royal Hallamshire (the default) sends **Plan my journey** to
+`/api/v1/agent/plan`:
+
+- **Needs:** taken from the saved profile, using the same `profileNeeds` mapping as `agent.html`.
+- **Start area:** the nearest area with checked route data to the GPS or searched address,
+  within 2.5 km. Otherwise "Somewhere else", and the agent replies "I don't know".
+- **Results:** shown with the shared `src/agent/AgentResults.jsx`, including Dexi's read-aloud
+  (`src/tts/speak.js`).
+- **Map:** the hospital is set as the destination.
+- **Drafts:** shown in Support and in the Staff demo.
+
+Northern General keeps the original rule-based planner.
+
 ## What the agent does
 
 1. **Nemotron on the DGX Spark decides what to check** using tools: hospital entrance, route options,

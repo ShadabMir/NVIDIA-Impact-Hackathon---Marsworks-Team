@@ -1,10 +1,6 @@
-"""The existing API plus the text-to-speech endpoints.
+"""Kept for compatibility: app.main now includes the text-to-speech routes itself.
 
-Run with ``python -m uvicorn app.main_tts:app --port 8000`` instead of ``app.main:app``.
-Every existing route is unchanged; this file only adds /api/v1/tts.
+``python -m uvicorn app.main_tts:app`` and ``app.main:app`` serve the same API.
 """
 
-from app.main import app
-from app.tts import router as tts_router
-
-app.include_router(tts_router)
+from app.main import app  # noqa: F401

@@ -5,7 +5,7 @@
 //   import { speak, stopSpeaking } from "./tts/speak";
 //   const source = await speak("Your route has changed.");   // "spark" | "browser" | "none"
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/backend"; // same Vite proxy as the rest of the app
 
 let currentAudio = null;
 let currentUrl = null;

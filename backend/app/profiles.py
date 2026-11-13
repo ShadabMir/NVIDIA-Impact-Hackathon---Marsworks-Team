@@ -38,7 +38,7 @@ class Profile(StrictModel):
     first_name: str = Field(min_length=1, max_length=80)
     last_name: str = Field(min_length=1, max_length=80)
     email: str = Field(min_length=3, max_length=254)
-    default_hospital_id: Literal["northern-general-demo"] = "northern-general-demo"
+    default_hospital_id: Literal["royal-hallamshire", "northern-general-demo"] = "northern-general-demo"
     default_starting_address: str = Field(default="", max_length=500)
     mobility_aid: MobilityAid = "manual_wheelchair"
     access: AccessRequirements

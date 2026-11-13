@@ -51,15 +51,25 @@ npm run dev
 | http://localhost:8000/health | `{"status":"ok", ...}` |
 | http://localhost:8000/api/v1/agent/health | `"status":"available"` if Nemotron is reachable through the tunnel |
 | http://localhost:8000/docs | Interactive API docs for every route |
-| http://localhost:5173/agent.html | **AccessRoute agent**: Margaret's journey to the Royal Hallamshire |
-| http://localhost:5173/ | Appointment upload, saved profiles, settings and live GPS map |
+| http://localhost:5173/ | **The combined app**: letter upload, profile, AI journey plan, map, support |
+| http://localhost:5173/agent.html | Standalone agent console (same agent, all options on one page) |
 
-**Demo flow on `agent.html`:**
+**Demo flow on http://localhost:5173/** (Royal Hallamshire is the default hospital):
 
-1. Click **Plan my journey**. Bus 95 should be recommended.
-2. Open **What the agent did** to see Nemotron's tool calls.
-3. Select **Pavement blocked on Beech Hill Road**, then click **Re-plan with these problems**.
-4. Click **Draft a blocked-pavement report**.
+1. **Appointment:** upload a synthetic letter (read by the vision model on the Spark), or keep
+   the example. Enter or locate your start address; the app picks the nearest area with checked
+   route data (Walkley for Margaret). Tick "I have checked…" and continue.
+2. **Access needs:** these come from your profile. Tick any extras (toilet, crowds, taxi), keep
+   "Use the local AI agent" on, then click **Plan my journey**.
+3. **Plan & map:**
+   - Nemotron's recommendation, with **Read aloud** and the green DGX Spark stats panel.
+   - Every route checked, and **What the agent did** showing its tool calls.
+   - The map has the hospital entrance set as its destination.
+4. **Something goes wrong:** select **Pavement blocked on Beech Hill Road**, then **Re-plan**. It
+   switches to a taxi and offers drafts. Open a draft, then see it in **4. Support** and
+   **Staff demo**.
+
+Choosing Northern General instead uses the original rule-based demo planner.
 
 The header badge says whether the local AI is in use. If it says "not reachable", the safety rules
 still plan the journey. Check window 1 and `OLLAMA_BASE_URL`.
@@ -106,7 +116,7 @@ See [AGENT.md](AGENT.md) for how the agent works, the demo script and data sourc
 - Disruption reassessment and a template travel-support draft; nothing is sent.
 - Three clearly labelled fictional route fixtures for frontend development.
 
-**Merged application:** `/` provides appointment upload, profiles, settings, live GPS and optional outdoor directions; `/agent.html` provides the Royal Hallamshire model-directed agent demonstration. Both are built by `npm run build` and use the same `/backend` Vite proxy. The frontend pages link to one another and load the same signed-in account. The agent can apply saved profile preferences. Hospital-specific appointment forms remain separate and can each be explicitly saved or removed.
+**Combined application:** `/` provides appointment upload, profiles, settings, live GPS and optional outdoor directions. Royal Hallamshire journeys on `/` are planned by the Nemotron agent, including re-planning, drafts and read-aloud; `/agent.html` provides the Royal Hallamshire model-directed agent demonstration. Both are built by `npm run build` and use the same `/backend` Vite proxy. The frontend pages link to one another and load the same signed-in account. The agent can apply saved profile preferences. Hospital-specific appointment forms remain separate and can each be explicitly saved or removed.
 
 **Current boundary:** appointment-journey routes, times, gradients and access flags are simulated, not real travel advice. The original journey routes support `demo-home` / `northern-general-demo`; the agent routes use the Royal Hallamshire fixtures. Live weather is optional, live outdoor wheelchair directions require an ORS key, and no live bus feed is connected. The agent can use model-directed tool calling when Spark is configured; rules-only fallback is explicitly labelled. The browser-only staff preview does not send requests or dispatch transport. Real Spark inference still needs deployment verification.
 
