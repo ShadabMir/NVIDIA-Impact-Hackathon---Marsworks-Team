@@ -186,6 +186,8 @@ def test_contract_with_the_real_speech_service_code(monkeypatch):
     import sys
     from pathlib import Path
 
+    # The speech service needs numpy, which is installed with it on the Spark, not in the backend venv.
+    pytest.importorskip("numpy", reason="speech service dependency (numpy) not installed here")
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "spark"))
     import asr_server
 

@@ -98,8 +98,8 @@ $env:ASR_MODEL="openai/whisper-base.en"; python spark/asr_server.py
 
 | Command | Covers |
 | --- | --- |
-| `cd backend; python -m pytest -q` | 30 voice tests: every failure above, value checks, and a backend-to-real-service contract test |
-| `python -m pytest spark -q` | 16 speech service tests (Whisper stubbed): silence, invented phrases, bad or long audio, stereo and 48 kHz, load failure, library differences |
+| `cd backend; python -m pytest -q` | 30 voice tests: every failure above, value checks, and a backend-to-real-service contract test. The contract test is **skipped** if `numpy` isn't installed (it's a speech-service dependency, not a backend one) |
+| `python -m pytest spark -q` | 16 speech service tests (Whisper stubbed): silence, invented phrases, bad or long audio, stereo and 48 kHz, load failure, library differences. Needs `pip install numpy fastapi httpx pytest python-multipart` (no PyTorch needed) |
 | `npm run test:navigation` | WAV encoding, silence and length checks, microphone error messages, read-back text |
 
 These tests don't run the real Whisper model. On the Spark, `/health` reports `ready` only after a
