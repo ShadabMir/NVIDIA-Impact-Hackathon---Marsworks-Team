@@ -1,0 +1,84 @@
+:root {
+  --nhs-blue: #005eb8;
+  --nhs-dark-blue: #003087;
+  --nv-green: #76b900;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f0f4f5;
+  color: #212b32;
+  padding-bottom: 90px;
+}
+
+/* Mobile-first container for Patient Screens (1-4), wide for Staff Dashboard (5) */
+.app-container-mobile {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.app-container-wide {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* High-accessibility large touch buttons */
+.btn-accessible {
+  min-height: 54px;
+  font-size: 1.08rem;
+  font-weight: 700;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Large readable form inputs */
+.form-control-lg-accessible,
+.form-select-lg-accessible {
+  min-height: 52px;
+  font-size: 1.05rem;
+  border: 2px solid #4c6272;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.form-control-lg-accessible:focus,
+.form-select-lg-accessible:focus {
+  border-color: var(--nhs-blue);
+  box-shadow: 0 0 0 4px rgba(0, 94, 184, 0.25);
+}
+
+.form-label-accessible {
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: #212b32;
+  margin-bottom: 0.35rem;
+}
+
+.nhs-header {
+  background-color: var(--nhs-blue);
+  color: #ffffff;
+}
+
+.spark-badge {
+  background-color: #1a1a1a;
+  color: #a3e635;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.step-nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-top: 2px solid #d8dde0;
+  z-index: 1000;
+  padding: 8px 12px;
+}
