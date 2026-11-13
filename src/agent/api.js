@@ -25,6 +25,7 @@ export const getProfile = () => request("/api/v1/profile");
 export const getWorkspace = () => request("/api/v1/workspace");
 export const saveWorkspace = body => request("/api/v1/workspace", { method: "PATCH", body: JSON.stringify(body) });
 export const getModelHealth = () => request("/api/v1/agent/health");
+export const warmUpModel = () => request("/api/v1/agent/warmup", { method: "POST" });
 export const planJourney = (req) =>
   request("/api/v1/agent/plan", { method: "POST", body: JSON.stringify(req) });
 export const reassessJourney = (req, disruptions, earliest_departure) =>

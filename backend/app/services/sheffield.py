@@ -58,12 +58,16 @@ def options_for(origin_id: str) -> list[dict[str, Any]]:
 
 
 def choose_entrance(department: str) -> dict[str, Any]:
+    """Pick the entrance for a department. `matched` is False when the department is unclear."""
     dept = department.lower()
     entrances = hospital()["entrances"]
     for entrance in entrances:
         if any(word in dept for word in entrance["use_for"]):
-            return entrance
-    return next(e for e in entrances if e["id"] == "rhh-entrance-9")
+            return {**entrance, "matched": True}
+    main = next(e for e in entrances if e["id"] == "rhh-entrance-9")
+    return {**main, "matched": False,
+            "notes": f"Department '{department}' not recognised, so the main entrance is suggested. "
+                     "Check the entrance or floor on your letter, or ask at main reception."}
 
 
 def option_streets(options: list[dict[str, Any]]) -> set[str]:

@@ -10,6 +10,7 @@ import {
   reassessJourney,
   toIso,
   toLondonTime,
+  warmUpModel,
 } from "./api.js";
 
 const AIDS = [
@@ -123,9 +124,24 @@ export default function AgentApp() {
   const [error, setError] = useState("");
   const [activeScenarios, setActiveScenarios] = useState([]);
   const [draft, setDraft] = useState(null);
+<<<<<<< HEAD
   const [accountProfile, setAccountProfile] = useState(null);
   const [savedMessage, setSavedMessage] = useState("");
   const [restoring, setRestoring] = useState(true);
+=======
+  const [warm, setWarm] = useState("");
+
+  const onWarmUp = async () => {
+    setWarm("Loading model on the Spark…");
+    try {
+      const w = await warmUpModel();
+      setWarm(`${w.model} loaded (${w.load_seconds}s), kept for ${w.keep_alive}`);
+      setModelOk(true);
+    } catch (e) {
+      setWarm(e.message);
+    }
+  };
+>>>>>>> a831852e2120cc8d634e35eb8521a19eee4f9613
 
   useEffect(() => {
     let active = true;
@@ -237,6 +253,8 @@ export default function AgentApp() {
             <span className={`badge ${modelOk ? "text-bg-success" : modelOk === false ? "text-bg-warning" : "text-bg-secondary"}`}>
               Local AI (DGX Spark): {modelOk ? "ready" : modelOk === false ? "not reachable – rules only" : "checking"}
             </span>
+            <button type="button" className="btn btn-sm btn-light" onClick={onWarmUp}>Warm up AI</button>
+            {warm && <span className="small">{warm}</span>}
           </div>
         </div>
       </header>
@@ -393,7 +411,7 @@ function Results({ plan, scenarios, active, onToggle, onReassess, onDraft, busy,
       <div className={`card shadow-sm border-3 ${best ? "border-success" : "border-danger"}`}>
         <div className="card-body">
           <div className="d-flex flex-wrap gap-2 mb-2">
-            <span className={`badge ${best ? "text-bg-success" : "text-bg-danger"}`}>{best ? "RECOMMENDED" : "NO SAFE ROUTE"}</span>
+            <span className={`badge ${best ? "text-bg-success" : "text-bg-danger"}`}>{best ? "RECOMMENDED" : plan.options.length === 0 ? "I DON'T KNOW: NO ROUTE DATA" : "NO SAFE ROUTE"}</span>
             <span className="badge text-bg-light border">
               {plan.agent_mode === "model_directed" ? `Agent: ${plan.model} on DGX Spark` :
                 plan.agent_mode === "model_unavailable_fallback" ? "AI unreachable – safety rules only" : "Safety rules only"}
@@ -414,6 +432,7 @@ function Results({ plan, scenarios, active, onToggle, onReassess, onDraft, busy,
               <ul className="mb-0">{rec.tips.map((t, i) => <li key={i}>{t}</li>)}</ul>
             </>
           )}
+          <ComputeStats plan={plan} />
         </div>
       </div>
 
@@ -486,7 +505,11 @@ function Results({ plan, scenarios, active, onToggle, onReassess, onDraft, busy,
       {plan.options.map((o) => <OptionCard key={o.id} option={o} recommended={o.id === rec.option_id} />)}
 
       <details className="card shadow-sm">
-        <summary className="card-body fw-bold">What the agent did ({plan.agent_steps.length} steps)</summary>
+        <summary className="card-body fw-bold">
+          What the agent did ({plan.agent_steps.length} steps:{" "}
+          {plan.agent_steps.filter((s) => s.actor === "model").length} chosen by Nemotron,{" "}
+          {plan.agent_steps.filter((s) => s.actor === "safety_net").length} added by the safety net)
+        </summary>
         <ol className="small px-4 pb-3 mb-0">
           {plan.agent_steps.map((s) => (
             <li key={s.step} className="mb-2">
@@ -497,6 +520,39 @@ function Results({ plan, scenarios, active, onToggle, onReassess, onDraft, busy,
           ))}
         </ol>
       </details>
+    </div>
+  );
+}
+
+function ComputeStats({ plan }) {
+  const st = plan.model_stats;
+  if (!st) {
+    return (
+      <p className="small text-muted mt-3 mb-0">
+        Planned by safety rules only in {plan.elapsed_seconds}s (local AI not used).
+      </p>
+    );
+  }
+  const items = [
+    ["Model", st.model],
+    ["Model calls", st.calls],
+    ["Tokens", `${st.prompt_tokens.toLocaleString()} in / ${st.output_tokens.toLocaleString()} out`],
+    ["Speed", st.tokens_per_second ? `${st.tokens_per_second} tokens/s` : "–"],
+    ["Model time", `${st.model_seconds}s`],
+    ["Total", `${plan.elapsed_seconds}s`],
+  ];
+  if (st.load_seconds > 0.5) items.push(["Model load", `${st.load_seconds}s`]);
+  return (
+    <div className="compute-stats mt-3" aria-label="Local compute on the DGX Spark">
+      <div className="small fw-bold mb-1">Running locally on NVIDIA DGX Spark: no data left the building</div>
+      <dl className="d-flex flex-wrap gap-3 mb-0 small">
+        {items.map(([k, v]) => (
+          <div key={k}>
+            <dt className="fw-normal text-muted">{k}</dt>
+            <dd className="fw-bold mb-0">{v}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }

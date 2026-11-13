@@ -87,6 +87,32 @@ Next real sources (see the datasets doc):
 - Wheelmap / accessibility.cloud and AccessAble for entrances and toilets
 - ONS Census 2021 TS038 for the problem-size slide
 
+## Spark optimisations
+
+- **Model:** set `OLLAMA_AGENT_MODEL` in `backend/.env`. Use `nemotron-3.5-lightning:30b` for
+  agent steps or `nemotron-3-nano:30b` for reasoning, and compare them with the evaluation.
+  Only one model is loaded at a time. Letter reading uses Qwen (`OLLAMA_MODEL=qwen3.6:35b-a3b`),
+  so the first plan after an upload includes a model swap.
+- **Keep alive:** every call sends `keep_alive` (default `30m`, `OLLAMA_KEEP_ALIVE`), so the
+  model stays in GPU memory between the agent's calls. `POST /api/v1/agent/warmup` loads it
+  before a demo.
+- **Context:** the largest agent prompt is about 2,000 tokens, within the 8,192-token limit.
+- **Local compute shown:** each plan returns `model_stats` (model calls, tokens in/out, tokens
+  per second, model time and load time, from Ollama's own counters). `agent.html` shows it in
+  the green panel.
+
+## Evaluation
+
+`python -m eval.run_eval` (from `backend`) runs 8 cases against the real model:
+
+- 5 known-answer cases: normal day, blocked pavement, trams suspended, ice, manual wheelchair
+- 1 ambiguous input: department unclear, so the entrance is flagged, not guessed
+- 2 "I don't know" cases: no route data for Rotherham; no forecast 7 weeks ahead, so the advice
+  must not mention a temperature
+
+Results go to `backend/eval/results.md`. The same cases also run in `pytest` (rules only), so
+data changes cannot silently break them.
+
 ## Tests
 
 ```powershell
@@ -94,6 +120,10 @@ cd backend
 python -m pytest -q
 ```
 
+<<<<<<< HEAD
 The combined suite covers profiles, sessions, navigation adapters, rule enforcement, re-planning, drafts, the model-directed loop against a fake
+=======
+25 tests. They cover rule enforcement, re-planning, drafts, the model-directed loop against a fake
+>>>>>>> a831852e2120cc8d634e35eb8521a19eee4f9613
 Ollama server, the model trying to choose an unsafe route, the model being offline, and parsing
 of Open-Meteo responses.

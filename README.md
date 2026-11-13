@@ -71,6 +71,27 @@ $body = @{ origin_id = "walkley"; appointment = @{ department = "Neuro-Rehabilit
 (Invoke-RestMethod -Uri "http://localhost:8000/api/v1/agent/plan" -Method Post -ContentType "application/json" -Body $body).recommendation
 ```
 
+**Before a demo: warm up the model** so the first plan is fast. Click **Warm up AI** on
+`agent.html`, or:
+
+```powershell
+Invoke-RestMethod -Method Post http://localhost:8000/api/v1/agent/warmup
+```
+
+**Run the evaluation** (8 cases with known answers, including an ambiguous input and two
+"I don't know" cases). Run from `backend` with the venv active and the tunnel open. You don't
+need uvicorn running for this.
+
+```powershell
+python -m eval.run_eval
+python -m eval.run_eval --model nemotron-3.5-lightning:30b
+python -m eval.run_eval --rules-only
+```
+
+It prints PASS/FAIL, time, tool calls and tokens per case, and writes `backend/eval/results.md`.
+Paste that table into the submission and show it in the demo video. To compare models, run it
+once per model.
+
 See [AGENT.md](AGENT.md) for how the agent works, the demo script and data sources.
 
 ## What is implemented

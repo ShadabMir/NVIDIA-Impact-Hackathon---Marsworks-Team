@@ -138,6 +138,17 @@ class Recommendation(StrictModel):
     generated_by: Literal["model", "rules"]
 
 
+class ModelStats(StrictModel):
+    """What the local model on the DGX Spark actually did for this plan (from Ollama's own counters)."""
+    model: str
+    calls: int
+    prompt_tokens: int
+    output_tokens: int
+    model_seconds: float
+    tokens_per_second: float | None
+    load_seconds: float
+
+
 class AgentPlanResponse(StrictModel):
     data_status: Literal["demo_mixed"] = "demo_mixed"
     notice: str
@@ -156,6 +167,8 @@ class AgentPlanResponse(StrictModel):
     agent_mode: Literal["model_directed", "rules_only", "model_unavailable_fallback"]
     model: str | None
     agent_steps: list[AgentStep]
+    model_stats: ModelStats | None = None
+    elapsed_seconds: float = 0
 
 
 DraftKind = Literal["blocked_pavement_report", "hospital_transport_request", "operator_feedback"]
