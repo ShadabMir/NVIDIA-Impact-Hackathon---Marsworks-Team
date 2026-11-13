@@ -111,3 +111,26 @@ def test_existing_profiles_and_passwords_survive_schema_extension(client):
         assert connection.execute("PRAGMA user_version").fetchone()[0] >= 1
     finally:
         connection.close()
+
+
+def test_data_saved_by_other_branches_still_loads(client):
+    """Branches share backend/.data: a Northern General profile/appointment saved on main must not
+    crash this app's login, profile or saved-form loading."""
+    register(client)
+    connection = database()
+    with connection:
+        row = connection.execute("SELECT id, profile FROM users").fetchone()
+        legacy = {**json.loads(row["profile"]), "default_hospital_id": "northern-general-demo"}
+        connection.execute("UPDATE users SET profile=? WHERE id=?", (json.dumps(legacy), row["id"]))
+        connection.execute(
+            "INSERT INTO user_workspace (user_id,appointment,agent_request,updated_at) VALUES (?,?,?,?)",
+            (row["id"], json.dumps({"hospital_id": "northern-general-demo", "department": "Demo", "date": "2026-11-20",
+                                    "arrival": "10:00", "origin": ""}), json.dumps({"not": "an agent request"}),
+             "2026-11-13T12:00:00+00:00"))
+    connection.close()
+    login = client.post("/api/v1/auth/login", json={"email": "first@example.test", "password": "fictional-test-password"})
+    assert login.status_code == 200 and login.json()["default_hospital_id"] == "royal-hallamshire"
+    assert client.get("/api/v1/profile").status_code == 200
+    saved = client.get("/api/v1/workspace")
+    assert saved.status_code == 200 and saved.json()["appointment"] is None and saved.json()["agent_request"] is None
+    assert client.patch("/api/v1/workspace", json={"appointment": appointment()}).status_code == 200

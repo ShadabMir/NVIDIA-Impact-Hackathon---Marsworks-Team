@@ -4,7 +4,7 @@ from datetime import date as CalendarDate, datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Response
-from pydantic import AwareDatetime, Field
+from pydantic import ValidationError, AwareDatetime, Field
 
 from app.agent_schemas import AgentPlanRequest
 from app.profiles import check_origin, current_user, database
@@ -35,10 +35,21 @@ def read_workspace(connection, user_id):
     if row is None:
         return WorkspaceResponse()
     return WorkspaceResponse(
-        appointment=json.loads(row["appointment"]) if row["appointment"] else None,
-        agent_request=json.loads(row["agent_request"]) if row["agent_request"] else None,
+        appointment=stored_form(row["appointment"], AppointmentForm),
+        agent_request=stored_form(row["agent_request"], AgentPlanRequest),
         updated_at=row["updated_at"],
     )
+
+
+def stored_form(text, model):
+    """Saved forms written by other versions of the app (another branch sharing this database,
+    e.g. a Northern General appointment) may not fit this version: ignore them instead of failing."""
+    if not text:
+        return None
+    try:
+        return model.model_validate_json(text)
+    except ValidationError:
+        return None
 
 
 @router.get("", response_model=WorkspaceResponse)

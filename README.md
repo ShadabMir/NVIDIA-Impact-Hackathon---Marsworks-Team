@@ -81,6 +81,41 @@ The header shows **Letter model** and **AI agent** status. If the agent is "Not 
 safety rules still plan the journey, and the result says so. Check window 1 and
 `OLLAMA_BASE_URL`.
 
+## Switching between branches
+
+The repository has several branches with different apps (`main`, `combined-accessroute`,
+`team-app-without-agent`, …). They all use the same ports (5173 and 8000), so **only one can run
+at a time**, and some untracked files are shared between them: `backend/.env`, the venv,
+`node_modules`, and the user database `backend/.data/`. Each time you switch:
+
+1. Stop both servers (Ctrl+C in windows 2 and 3) **before** `git checkout`.
+2. Switch and update:
+
+   ```powershell
+   git checkout combined-accessroute
+   ```
+
+   ```powershell
+   git pull
+   ```
+
+3. Re-install backend packages, because branches differ. For example, `tzdata` is needed on
+   Windows for the agent. Run this in `backend`, with the venv active:
+
+   ```powershell
+   python -m pip install -r requirements.txt
+   ```
+
+4. Check `backend\.env` has the settings this branch needs (see the table above). Settings for
+   other branches are ignored.
+5. Start the backend and frontend again, and reload the browser.
+
+This app safely loads accounts saved by other branches: a Northern General profile becomes Royal
+Hallamshire, and saved forms it can't read are skipped. `main` does **not** do this, so after
+using this app, `main` may show "Could not load your saved appointment". Either remove the saved
+appointment, or give each branch its own database, e.g. `DATABASE_PATH=.data/main.sqlite3` in
+`backend\.env` while on `main`. The simplest option is a separate folder (`git clone`) per branch.
+
 ## Demo flow
 
 1. **Appointment:**

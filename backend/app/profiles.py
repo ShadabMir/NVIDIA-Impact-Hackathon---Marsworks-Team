@@ -143,6 +143,15 @@ def set_session(response: Response, user_id: str):
                         max_age=SESSION_SECONDS, path="/")
 
 
+def stored_profile(text: str) -> dict:
+    """Load a saved profile. Profiles saved by other versions of the app (e.g. the Northern General
+    demo on another branch) share this database, so map unsupported hospitals to the current one."""
+    data = json.loads(text)
+    if data.get("default_hospital_id") != "royal-hallamshire":
+        data["default_hospital_id"] = "royal-hallamshire"
+    return data
+
+
 @router.get("/access/defaults")
 def defaults():
     return {
@@ -190,7 +199,7 @@ def login(payload: LoginRequest, response: Response):
     if not hmac.compare_digest(stored, candidate) or row is None:
         raise HTTPException(401, "Email or password is incorrect")
     set_session(response, row["id"])
-    return json.loads(row["profile"])
+    return stored_profile(row["profile"])
 
 
 @router.post("/auth/logout", dependencies=[Depends(check_origin)])
@@ -208,7 +217,7 @@ def logout(request: Request, response: Response):
 
 @router.get("/profile", response_model=Profile)
 def profile(user=Depends(current_user)):
-    return json.loads(user["profile"])
+    return stored_profile(user["profile"])
 
 
 @router.put("/profile", response_model=Profile, dependencies=[Depends(check_origin)])
