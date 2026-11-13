@@ -1,0 +1,108 @@
+/* Read-aloud controls. Large targets (at least 48px), strong contrast, visible focus. */
+
+.listen-bar {
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  background: #ffffff;
+  border: 2px solid #005eb8;
+  border-radius: 14px;
+  padding: 10px 12px 6px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.listen-bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.listen-bar-small {
+  margin-top: 8px;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.listen-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.listen-btn:focus-visible,
+.listen-toggle input:focus-visible {
+  outline: 4px solid #ffb81c; /* NHS warm yellow focus ring */
+  outline-offset: 2px;
+}
+
+.listen-btn-primary {
+  flex: 1 1 220px;
+  min-height: 56px;
+  font-size: 1.15rem;
+  background: #005eb8;
+  color: #ffffff;
+}
+
+.listen-btn-primary:hover {
+  background: #003087;
+}
+
+.listen-btn-primary:disabled {
+  background: #4c6272;
+  cursor: progress;
+}
+
+.listen-btn-stop {
+  flex: 0 1 120px;
+  min-height: 56px;
+  font-size: 1.05rem;
+  background: #ffffff;
+  color: #212b32;
+  border-color: #212b32;
+}
+
+.listen-btn-inline {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px 12px;
+  font-size: 0.95rem;
+  background: #ffffff;
+  color: #005eb8;
+  border-color: #005eb8;
+}
+
+.listen-btn-inline:hover {
+  background: #e8f1fa;
+}
+
+.listen-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-weight: 600;
+  color: #212b32;
+}
+
+.listen-toggle input {
+  width: 22px;
+  height: 22px;
+}
+
+.listen-hint {
+  color: #4c6272;
+}
+
+.listen-status {
+  margin: 4px 0 0;
+  min-height: 1.2em;
+  font-size: 0.9rem;
+  color: #212b32;
+}

@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import "./App.css";
+import ListenBar, { ListenButton } from "./tts/ListenBar";
+import {
+  alertScript,
+  appointmentScript,
+  routeStepScript,
+  screenScript,
+} from "./tts/screenScripts";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -1058,6 +1065,13 @@ export default function App() {
           <span className="badge bg-secondary">Margaret, 67</span>
         </div>
 
+        {/* Read-aloud controls: first control on every screen */}
+        <ListenBar
+          screenKey={step}
+          script={screenScript(step, data, weather)}
+          alertText={step === 4 ? alertScript(data) : ""}
+        />
+
         {/* ================= SCREEN 1: LETTER UPLOAD ================= */}
         {step === 1 && (
           <div className="d-flex flex-column gap-3">
@@ -1095,9 +1109,15 @@ export default function App() {
 
             <div className="card border-0 shadow-sm">
               <div className="card-body">
-                <h3 className="h6 fw-bold text-primary mb-3">
-                  Confirm Extracted Details
-                </h3>
+                <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
+                  <h3 className="h6 fw-bold text-primary mb-0">
+                    Confirm Extracted Details
+                  </h3>
+                  <ListenButton
+                    text={appointmentScript(data)}
+                    label="Listen to details"
+                  />
+                </div>
 
                 <div className="mb-3">
                   <label className="form-label-accessible">Hospital</label>
@@ -1321,7 +1341,7 @@ export default function App() {
                   Turn-by-Turn Nodes (Tap to Zoom GIS Map)
                 </h3>
 
-                {data.steps.map((s) => (
+                {data.steps.map((s, index) => (
                   <div
                     key={s.id}
                     onClick={() => {
@@ -1341,6 +1361,11 @@ export default function App() {
                       </span>
                     </div>
                     <div className="small mt-1">{s.detail}</div>
+                    <ListenButton
+                      text={routeStepScript(s, index)}
+                      label={`Listen to step ${index + 1}`}
+                      className="mt-2"
+                    />
                   </div>
                 ))}
               </div>
@@ -1360,14 +1385,18 @@ export default function App() {
         {/* ================= SCREEN 4: DISRUPTION MAP & SUPPORT ================= */}
         {step === 4 && (
           <div className="d-flex flex-column gap-3">
-            <div className="alert alert-danger border-2 border-danger shadow-sm mb-0">
+            <div
+              className="alert alert-danger border-2 border-danger shadow-sm mb-0"
+              role="alert"
+            >
               <div className="badge bg-danger mb-1">
                 QGIS + LIVE ROADS ALERT — {data.disruption.time}
               </div>
               <h2 className="h5 fw-bold mb-1">
                 Blocked Pavement: {data.disruption.location}
               </h2>
-              <p className="small mb-0">{data.disruption.alert}</p>
+              <p className="small mb-2">{data.disruption.alert}</p>
+              <ListenButton text={alertScript(data)} label="Listen to alert" />
             </div>
 
             {/* Live Weather context during disruption */}
