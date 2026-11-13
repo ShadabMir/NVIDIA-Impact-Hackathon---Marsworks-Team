@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
-const API_BASE = "http://localhost:8000";
+// Automatically uses the IP from your .env file, or localhost as a fallback
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const INITIAL_SAMPLE_DATA = {
   extraction: {
@@ -31,7 +32,7 @@ const INITIAL_SAMPLE_DATA = {
       reason: "Steep 1-in-8 hill on Howard Rd is unsafe for a powered wheelchair.",
     },
     {
-      id: "route-b",
+      id: "demo-direct",
       name: "Stagecoach Bus 95 (South Rd → Glossop Rd)",
       gradient: "1-in-20 (5.0%)",
       distance: "95m",
@@ -98,8 +99,32 @@ export default function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [data, setData] = useState(INITIAL_SAMPLE_DATA);
   const [taxiApproved, setTaxiApproved] = useState(false);
+  
+  // Connection statuses for the header
+  const [apiStatus, setApiStatus] = useState("Checking...");
+  const [modelStatus, setModelStatus] = useState("Checking...");
+  const [hospitals, setHospitals] = useState([]);
 
-  // Connects to Yanki's FastAPI /api/extract-letter endpoint (falls back to sample data)
+  // 1. App Startup: Ping Health, Model, and Hospitals on load
+  useEffect(() => {
+    // GET /health
+    fetch(`${API_BASE}/health`)
+      .then(res => res.ok ? setApiStatus("Online") : setApiStatus("Error"))
+      .catch(() => setApiStatus("Offline"));
+
+    // GET /health/model
+    fetch(`${API_BASE}/health/model`)
+      .then(res => res.ok ? setModelStatus("Connected") : setModelStatus("Error"))
+      .catch(() => setModelStatus("Offline"));
+
+    // GET /api/v1/hospitals
+    fetch(`${API_BASE}/api/v1/hospitals`)
+      .then(res => res.json())
+      .then(data => setHospitals(data.hospitals || []))
+      .catch(() => console.warn("Using simulated hospitals"));
+  }, []);
+
+  // 2. Upload Letter: POST /api/v1/appointments/extract
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -109,7 +134,7 @@ export default function App() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`${API_BASE}/api/extract-letter`, {
+      const res = await fetch(`${API_BASE}/api/v1/appointments/extract`, {
         method: "POST",
         body: formData,
       });
@@ -121,9 +146,92 @@ export default function App() {
         }));
       }
     } catch {
-      // Uses local sample data if FastAPI is not connected yet
+      // Fallback to sample data if FastAPI fails
+      console.warn("VLM Extraction failed, falling back to sample data");
     } finally {
       setTimeout(() => setLoading(false), 500);
+    }
+  };
+
+  // 3. Plan Journey: POST /api/v1/journeys/plan
+  const handlePlanJourney = async () => {
+    setLoading(true);
+    try {
+      const payload = {
+        origin_id: "demo-home", 
+        appointment: {
+          hospital_id: "northern-general-demo", 
+          department: data.extraction.department,
+          arrive_by: "2026-11-16T10:30:00+00:00",
+          confirmed_by_user: true
+        },
+        access: { step_free_required: data.accessNeeds.stepFree }
+      };
+
+      const res = await fetch(`${API_BASE}/api/v1/journeys/plan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const journeyData = await res.json();
+        // Update data state with live backend responses here in Sprint 2/3
+        console.log("Planned Journey:", journeyData);
+      }
+    } catch {
+       console.warn("Journey planning failed, falling back to sample data");
+    } finally {
+      setLoading(false);
+      setStep(3);
+    }
+  };
+
+  // 4. Replan & Support Draft: POST /api/v1/journeys/reassess AND POST /api/v1/support/draft
+  const handleSimulateDisruption = async () => {
+    setLoading(true);
+    try {
+      const payload = {
+        journey: {
+          origin_id: "demo-home",
+          appointment: {
+            hospital_id: "northern-general-demo",
+            department: data.extraction.department,
+            arrive_by: "2026-11-16T10:30:00+00:00",
+            confirmed_by_user: true
+          },
+          access: { step_free_required: data.accessNeeds.stepFree }
+        },
+        disruption: {
+          unavailable_route_ids: ["demo-direct"],
+          delay_minutes_by_route: {}
+        },
+        earliest_departure: "2026-11-16T08:00:00+00:00"
+      };
+
+      // Call Reassess Route
+      const res = await fetch(`${API_BASE}/api/v1/journeys/reassess`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      
+      // Call Support Draft Route
+      const draftRes = await fetch(`${API_BASE}/api/v1/support/draft`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (draftRes.ok) {
+        const supportDraft = await draftRes.json();
+        console.log("Generated Support Draft:", supportDraft);
+      }
+    } catch {
+       console.warn("Disruption reassessment failed, falling back to sample data");
+    } finally {
+      setLoading(false);
+      setStep(4);
     }
   };
 
@@ -149,8 +257,9 @@ export default function App() {
           <div>
             <span className="badge bg-white text-primary fw-bold me-2">NHS</span>
             <span className="fw-bold fs-5">AccessRoute Sheffield</span>
-            <div className="small text-white-50">
-              Accessible Hospital Journey Assistant
+            <div className="small text-white-50 mt-1">
+               API: <span className={apiStatus === "Online" ? "text-info" : "text-warning"}>{apiStatus}</span> | 
+               Model: <span className={modelStatus === "Connected" ? "text-info" : "text-warning"}>{modelStatus}</span>
             </div>
           </div>
           <span className="spark-badge">⚡ Local DGX Spark + Ollama</span>
@@ -174,13 +283,13 @@ export default function App() {
           <span className="badge bg-secondary">Persona: Margaret, 67</span>
         </div>
 
-        {/* ================= SCREEN 1: LETTER UPLOAD & EXTRACTION ================= */}
+        {/* ================= SCREEN 1: LETTER UPLOAD ================= */}
         {step === 1 && (
           <div className="d-flex flex-column gap-3">
             <div className="card border-0 shadow-sm">
               <div className="card-body">
                 <span className="badge bg-success-subtle text-success border border-success-subtle mb-2">
-                  🔒 Private Local Vision Model (Never Leaves DGX Spark)
+                  🔒 Private Local Vision Model
                 </span>
                 <h2 className="h5 fw-bold">1. Upload Appointment Letter</h2>
                 <p className="text-muted small mb-3">
@@ -206,11 +315,11 @@ export default function App() {
               </div>
             </div>
 
-            {/* Extracted Details for Confirmation */}
+            {/* Extracted Details */}
             <div className="card border-0 shadow-sm">
               <div className="card-body">
                 <h3 className="h6 fw-bold text-primary mb-3">
-                  Confirm Extracted Appointment Details
+                  Confirm Extracted Details
                 </h3>
 
                 <div className="mb-3">
@@ -259,15 +368,6 @@ export default function App() {
                   />
                 </div>
 
-                <div className="p-3 bg-success-subtle border border-success rounded-3 mb-3">
-                  <div className="small fw-bold text-success-emphasis">
-                    🎯 Matched Step-Free Hospital Entrance:
-                  </div>
-                  <div className="fw-bold fs-6 text-dark">
-                    {data.extraction.entrance}
-                  </div>
-                </div>
-
                 <button
                   onClick={() => setStep(2)}
                   className="btn btn-primary btn-accessible w-100"
@@ -295,61 +395,41 @@ export default function App() {
                   value={data.accessNeeds.mobilityAid}
                   onChange={(e) => updateAccess("mobilityAid", e.target.value)}
                 >
-                  <option value="powered_wheelchair">
-                    Powered Wheelchair (Post-Stroke)
-                  </option>
+                  <option value="powered_wheelchair">Powered Wheelchair (Post-Stroke)</option>
                   <option value="manual_wheelchair">Manual Wheelchair</option>
                   <option value="rollator">Walking Frame / Rollator</option>
-                  <option value="walking_stick">Walking Stick / Limited Stamina</option>
                 </select>
               </div>
 
               <div className="mb-3">
-                <label className="form-label-accessible">
-                  Maximum Safe Hill Steepness
-                </label>
+                <label className="form-label-accessible">Max Safe Hill Steepness</label>
                 <select
                   className="form-select form-select-lg-accessible"
                   value={data.accessNeeds.maxGradient}
                   onChange={(e) => updateAccess("maxGradient", e.target.value)}
                 >
-                  <option value="1:12">
-                    Avoid Steep Hills — Block 1-in-8 (12.5%) slopes
-                  </option>
-                  <option value="1:15">
-                    Flat / Gentle Slopes Only (Max 1-in-15)
-                  </option>
+                  <option value="1:12">Avoid Steep Hills — Block 1-in-8 (12.5%)</option>
+                  <option value="1:15">Flat / Gentle Slopes Only (Max 1-in-15)</option>
                 </select>
-                <div className="form-text text-danger fw-medium">
-                  ⚠️ Walkley has 1-in-8 gradients. We will filter these out.
-                </div>
               </div>
 
               <div className="mb-3">
-                <label className="form-label-accessible">
-                  Max Distance Between Stops / Entrances (Metres)
-                </label>
+                <label className="form-label-accessible">Max Distance Between Stops (Metres)</label>
                 <input
                   type="number"
                   className="form-control form-control-lg-accessible"
                   value={data.accessNeeds.maxDistanceMeters}
-                  onChange={(e) =>
-                    updateAccess("maxDistanceMeters", Number(e.target.value))
-                  }
+                  onChange={(e) => updateAccess("maxDistanceMeters", Number(e.target.value))}
                 />
               </div>
 
               <div className="mb-3">
-                <label className="form-label-accessible">
-                  Extra Time Needed for Transfers / Ramps (Minutes)
-                </label>
+                <label className="form-label-accessible">Extra Time Needed for Ramps (Minutes)</label>
                 <input
                   type="number"
                   className="form-control form-control-lg-accessible"
                   value={data.accessNeeds.transferBufferMins}
-                  onChange={(e) =>
-                    updateAccess("transferBufferMins", Number(e.target.value))
-                  }
+                  onChange={(e) => updateAccess("transferBufferMins", Number(e.target.value))}
                 />
               </div>
 
@@ -363,34 +443,24 @@ export default function App() {
                   onChange={(e) => updateAccess("stepFree", e.target.checked)}
                   style={{ transform: "scale(1.4)" }}
                 />
-                <label
-                  className="form-check-label fw-bold"
-                  htmlFor="stepFreeSwitch"
-                >
+                <label className="form-check-label fw-bold" htmlFor="stepFreeSwitch">
                   Require 100% Step-Free & Dropped Kerbs
                 </label>
               </div>
 
-              <button
-                onClick={() => setStep(3)}
-                className="btn btn-primary btn-accessible w-100 mb-2"
-              >
-                Plan My Accessible Journey →
+              <button onClick={handlePlanJourney} className="btn btn-primary btn-accessible w-100 mb-2">
+                {loading ? "Planning..." : "Plan My Accessible Journey →"}
               </button>
-              <button
-                onClick={() => setStep(1)}
-                className="btn btn-outline-secondary btn-accessible w-100"
-              >
-                ← Back to Letter Details
+              <button onClick={() => setStep(1)} className="btn btn-outline-secondary btn-accessible w-100">
+                ← Back
               </button>
             </div>
           </div>
         )}
 
-        {/* ================= SCREEN 3: JOURNEY PLAN & EVIDENCE ================= */}
+        {/* ================= SCREEN 3: JOURNEY PLAN ================= */}
         {step === 3 && (
           <div className="d-flex flex-column gap-3">
-            {/* Key Leave Time Banner */}
             <div className="card border-success border-2 shadow-sm">
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-center mb-2">
@@ -400,20 +470,16 @@ export default function App() {
                 <h2 className="h4 fw-bold mb-1">Leave Home at 09:35 AM</h2>
                 <p className="small text-muted mb-0">
                   Arrives at Royal Hallamshire <strong>B-Road Entrance</strong> by
-                  10:05 AM (includes +15m buffer for 10:30 AM appointment).
+                  10:05 AM (includes +15m buffer).
                 </p>
               </div>
             </div>
 
-            {/* Step-by-step instructions */}
             <div className="card border-0 shadow-sm">
               <div className="card-body">
                 <h3 className="h6 fw-bold mb-3">Step-by-Step Journey</h3>
                 {data.steps.map((s, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 mb-2 bg-light rounded-3 border-start border-4 border-primary"
-                  >
+                  <div key={idx} className="p-3 mb-2 bg-light rounded-3 border-start border-4 border-primary">
                     <div className="fw-bold text-primary">{s.time} — {s.title}</div>
                     <div className="small mt-1">{s.detail}</div>
                   </div>
@@ -421,7 +487,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Route Comparison Table (Sprint 2 requirement) */}
             <div className="card border-0 shadow-sm">
               <div className="card-body">
                 <h3 className="h6 fw-bold mb-2">Why Other Routes Were Rejected</h3>
@@ -439,19 +504,11 @@ export default function App() {
                         <tr key={r.id}>
                           <td>
                             <div className="fw-bold">{r.name}</div>
-                            <div className="text-muted" style={{ fontSize: "0.78rem" }}>
-                              {r.reason}
-                            </div>
+                            <div className="text-muted" style={{ fontSize: "0.78rem" }}>{r.reason}</div>
                           </td>
                           <td className="fw-bold">{r.gradient}</td>
                           <td>
-                            <span
-                              className={`badge ${
-                                r.status === "RECOMMENDED"
-                                  ? "bg-success"
-                                  : "bg-danger"
-                              }`}
-                            >
+                            <span className={`badge ${r.status === "RECOMMENDED" ? "bg-success" : "bg-danger"}`}>
                               {r.status}
                             </span>
                           </td>
@@ -463,119 +520,44 @@ export default function App() {
               </div>
             </div>
 
-            {/* Verified vs Unknowns */}
-            <div className="card border-0 shadow-sm">
-              <div className="card-body">
-                <h3 className="h6 fw-bold text-success mb-2">
-                  ✅ Verified Accessibility Information
-                </h3>
-                <ul className="small ps-3 mb-3">
-                  {data.verifiedFacts.map((f, i) => (
-                    <li key={i} className="mb-1">{f}</li>
-                  ))}
-                </ul>
-
-                <h3 className="h6 fw-bold text-warning-emphasis mb-2">
-                  ❓ Unverified / Real-World Unknowns
-                </h3>
-                <ul className="small ps-3 mb-0">
-                  {data.unknowns.map((u, i) => (
-                    <li key={i} className="mb-1">{u}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Visible Agent Tool Results (Sprint 3 requirement) */}
-            <div className="card bg-dark text-light border-0 shadow-sm">
-              <div className="card-body py-2 px-3">
-                <div className="small fw-bold text-info mb-1">
-                  🔧 Agent Tool Checks (DGX Spark):
-                </div>
-                {data.toolResults.map((t, i) => (
-                  <div key={i} className="font-monospace" style={{ fontSize: "0.75rem" }}>
-                    {t}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={() => setStep(4)}
-              className="btn btn-danger btn-accessible w-100 shadow"
-            >
-              🚨 Simulate Live Pavement Disruption →
+            <button onClick={handleSimulateDisruption} className="btn btn-danger btn-accessible w-100 shadow">
+              {loading ? "Reassessing..." : "🚨 Simulate Live Pavement Disruption →"}
             </button>
           </div>
         )}
 
-        {/* ================= SCREEN 4: DISRUPTION & SUPPORT FALLBACK ================= */}
+        {/* ================= SCREEN 4: DISRUPTION & SUPPORT ================= */}
         {step === 4 && (
           <div className="d-flex flex-column gap-3">
             <div className="alert alert-danger border-2 border-danger shadow-sm mb-0">
-              <div className="badge bg-danger mb-1">
-                LIVE BARRIER ALERT — {data.disruption.time}
-              </div>
-              <h2 className="h5 fw-bold mb-1">
-                Blocked Pavement: {data.disruption.location}
-              </h2>
+              <div className="badge bg-danger mb-1">LIVE BARRIER ALERT — {data.disruption.time}</div>
+              <h2 className="h5 fw-bold mb-1">Blocked Pavement: {data.disruption.location}</h2>
               <p className="small mb-0">{data.disruption.alert}</p>
             </div>
 
-            {/* Agent Reassessment */}
             <div className="card border-0 shadow-sm">
               <div className="card-body">
-                <h3 className="h6 fw-bold mb-2">
-                  Agent Reassessment Against Margaret’s Profile
-                </h3>
+                <h3 className="h6 fw-bold mb-2">Agent Reassessment Against Margaret’s Profile</h3>
                 {data.disruption.reassessmentLog.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-2 mb-2 bg-light rounded border font-monospace small"
-                  >
+                  <div key={idx} className="p-2 mb-2 bg-light rounded border font-monospace small">
                     {item}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Auto-Drafted Hospital Travel Support Request */}
             <div className="card border-primary border-2 shadow-sm">
               <div className="card-body">
-                <span className="badge bg-primary mb-2">
-                  FALLBACK ACTION READY
-                </span>
-                <h3 className="h5 fw-bold">
-                  Drafted Hospital Travel Support Request
-                </h3>
-                <p className="small text-muted mb-2">
-                  Because no safe public route meets your slope and pavement
-                  needs, the agent has drafted this request for the hospital team:
-                </p>
-
+                <span className="badge bg-primary mb-2">FALLBACK ACTION READY</span>
+                <h3 className="h5 fw-bold">Drafted Hospital Travel Support Request</h3>
                 <div className="p-3 bg-light rounded-3 border small mb-3">
-                  <div className="mb-1">
-                    <strong>To:</strong> {data.disruption.supportDraft.to}
-                  </div>
-                  <div className="mb-1">
-                    <strong>Patient:</strong> {data.disruption.supportDraft.patient}
-                  </div>
-                  <div className="mb-1">
-                    <strong>Access Barrier:</strong>{" "}
-                    {data.disruption.supportDraft.summary}
-                  </div>
-                  <div>
-                    <strong>Requested Support:</strong>{" "}
-                    <span className="fw-bold text-primary">
-                      {data.disruption.supportDraft.actionRequested}
-                    </span>
-                  </div>
+                  <div className="mb-1"><strong>To:</strong> {data.disruption.supportDraft.to}</div>
+                  <div className="mb-1"><strong>Patient:</strong> {data.disruption.supportDraft.patient}</div>
+                  <div className="mb-1"><strong>Access Barrier:</strong> {data.disruption.supportDraft.summary}</div>
+                  <div><strong>Requested Support:</strong> <span className="fw-bold text-primary">{data.disruption.supportDraft.actionRequested}</span></div>
                 </div>
 
-                <button
-                  onClick={() => setStep(5)}
-                  className="btn btn-success btn-accessible w-100"
-                >
+                <button onClick={() => setStep(5)} className="btn btn-success btn-accessible w-100">
                   Send Request & Open Staff Dashboard →
                 </button>
               </div>
@@ -583,28 +565,14 @@ export default function App() {
           </div>
         )}
 
-        {/* ================= SCREEN 5: PROTOTYPE STAFF DASHBOARD ================= */}
+        {/* ================= SCREEN 5: STAFF DASHBOARD ================= */}
         {step === 5 && (
           <div className="d-flex flex-column gap-3">
             <div className="card border-0 shadow-sm bg-dark text-white">
               <div className="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
-                  <span className="badge bg-info text-dark fw-bold mb-1">
-                    ROYAL HALLAMSHIRE HOSPITAL — STAFF PROTOTYPE
-                  </span>
-                  <h2 className="h4 fw-bold mb-0">
-                    Patient Access & Missed-Appointment Prevention
-                  </h2>
-                </div>
-                <div className="d-flex gap-2">
-                  <div className="bg-danger px-3 py-2 rounded-3 text-center">
-                    <div className="fw-bold fs-5">1</div>
-                    <div className="small">Blocked Journey</div>
-                  </div>
-                  <div className="bg-secondary px-3 py-2 rounded-3 text-center">
-                    <div className="fw-bold fs-5">14</div>
-                    <div className="small">On Track</div>
-                  </div>
+                  <span className="badge bg-info text-dark fw-bold mb-1">ROYAL HALLAMSHIRE HOSPITAL</span>
+                  <h2 className="h4 fw-bold mb-0">Patient Access Intervention Dashboard</h2>
                 </div>
               </div>
             </div>
@@ -613,60 +581,31 @@ export default function App() {
               <div className="card-body">
                 <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                   <div>
-                    <span className="badge bg-danger me-2">
-                      URGENT INTERVENTION NEEDED
-                    </span>
+                    <span className="badge bg-danger me-2">URGENT INTERVENTION NEEDED</span>
                     <span className="badge bg-secondary">Appt: Today 10:30 AM</span>
-                    <h3 className="h5 fw-bold mt-2 mb-0">
-                      Margaret Davies (67) — Neuro-Rehab Outpatients (Floor C)
-                    </h3>
-                    <div className="small text-muted">
-                      Origin: Walkley (S6 3TA) • Aid: Powered Wheelchair (Post-Stroke)
-                    </div>
+                    <h3 className="h5 fw-bold mt-2 mb-0">Margaret Davies (67) — Neuro-Rehab Outpatients (Floor C)</h3>
                   </div>
-                  <span
-                    className={`badge fs-6 ${
-                      taxiApproved ? "bg-success" : "bg-warning text-dark"
-                    }`}
-                  >
-                    {taxiApproved
-                      ? "✅ Wheelchair Taxi Dispatched (ETA 09:45)"
-                      : "⏳ Awaiting Staff Approval"}
+                  <span className={`badge fs-6 ${taxiApproved ? "bg-success" : "bg-warning text-dark"}`}>
+                    {taxiApproved ? "✅ Taxi Dispatched (ETA 09:45)" : "⏳ Awaiting Staff Approval"}
                   </span>
                 </div>
 
                 <div className="row g-3 mb-3">
                   <div className="col-md-6">
                     <div className="p-3 bg-danger-subtle rounded-3 h-100">
-                      <div className="fw-bold text-danger-emphasis mb-1">
-                        Why Margaret Cannot Complete the Journey:
-                      </div>
+                      <div className="fw-bold text-danger-emphasis mb-1">Barriers Detected:</div>
                       <ul className="small mb-0 ps-3">
-                        <li>
-                          <strong>Steep Hills:</strong> Walkley alternatives exceed
-                          1-in-8 (12.5%) gradient limit.
-                        </li>
-                        <li>
-                          <strong>Blocked Pavement:</strong> Beech Hill Rd footway
-                          closed by roadworks/pavement parking near Bus 95 stop.
-                        </li>
+                        <li><strong>Steep Hills:</strong> Walkley routes exceed 1-in-8 gradient limit.</li>
+                        <li><strong>Live Closure:</strong> Beech Hill Rd footway blocked by works.</li>
                       </ul>
                     </div>
                   </div>
-
                   <div className="col-md-6">
                     <div className="p-3 bg-success-subtle rounded-3 h-100">
-                      <div className="fw-bold text-success-emphasis mb-1">
-                        Suggested Follow-Up Actions:
-                      </div>
+                      <div className="fw-bold text-success-emphasis mb-1">Suggested Follow-Up:</div>
                       <ul className="small mb-0 ps-3">
-                        <li>
-                          Dispatch accessible wheelchair taxi to 42 South Rd (S6 3TA).
-                        </li>
-                        <li>
-                          Route drop-off directly to B-Road Step-Free Outpatient Bay.
-                        </li>
-                        <li>Notify Floor C reception (+15 min grace buffer).</li>
+                        <li>Dispatch accessible taxi to 42 South Rd (S6 3TA).</li>
+                        <li>Drop-off at B-Road Step-Free Outpatient Bay.</li>
                       </ul>
                     </div>
                   </div>
@@ -678,12 +617,7 @@ export default function App() {
                     disabled={taxiApproved}
                     className="btn btn-success btn-accessible px-4"
                   >
-                    {taxiApproved
-                      ? "✅ Accessible Taxi Booked & SMS Sent to Margaret"
-                      : "✅ Approve Wheelchair Taxi & Notify Patient"}
-                  </button>
-                  <button className="btn btn-outline-dark btn-accessible px-3">
-                    🕒 Hold 10:30 AM Clinic Slot
+                    {taxiApproved ? "✅ SMS Sent to Margaret" : "✅ Approve Wheelchair Taxi"}
                   </button>
                 </div>
               </div>
@@ -692,7 +626,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Bottom Quick-Jump Navigation Bar for Mobile & Demo Testing */}
+      {/* Bottom Nav */}
       <nav className="step-nav-bar">
         <div className="d-flex justify-content-center gap-1 max-w-wide mx-auto">
           {[
@@ -705,9 +639,7 @@ export default function App() {
             <button
               key={tab.id}
               onClick={() => setStep(tab.id)}
-              className={`btn btn-sm fw-bold flex-fill py-2 ${
-                step === tab.id ? "btn-primary" : "btn-outline-secondary"
-              }`}
+              className={`btn btn-sm fw-bold flex-fill py-2 ${step === tab.id ? "btn-primary" : "btn-outline-secondary"}`}
             >
               {tab.label}
             </button>
