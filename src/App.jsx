@@ -38,6 +38,53 @@ function decodeWmoWeather(code) {
   return map[code] || { label: `Weather code ${code}`, icon: "🌥️", wet: false };
 }
 
+// Background theme for the weather card, like a phone weather app.
+// For visual testing only, add ?weatherTheme=rain (sun, night, cloud, fog, rain, snow, storm).
+function weatherTheme(code, isDay) {
+  try {
+    const forced = new URLSearchParams(window.location.search).get("weatherTheme");
+    if (forced) return forced;
+  } catch {
+    /* ignore */
+  }
+  if ([95, 96, 99].includes(code)) return "storm";
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return "snow";
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
+  if (code === 45 || code === 48) return "fog";
+  if (code === 2 || code === 3) return "cloud";
+  return isDay === 0 ? "night" : "sun";
+}
+
+// Decorative animated layer (rain drops, snowflakes, stars, clouds). Hidden from screen readers.
+function WeatherEffects({ theme }) {
+  const counts = { rain: 40, storm: 50, snow: 30, night: 25, cloud: 4, fog: 3 };
+  const n = counts[theme] || 0;
+  const kind = theme === "storm" ? "rain" : theme;
+  return (
+    <div className={`weather-fx weather-fx-${theme}`} aria-hidden="true">
+      {theme === "sun" && <span className="wx-sun" />}
+      {theme === "storm" && <span className="wx-flash" />}
+      {Array.from({ length: n }, (_, i) => (
+        <span
+          key={i}
+          className={`wx-${kind}`}
+          style={{
+            left: `${(i * 37) % 100}%`,
+            top: kind === "night" ? `${(i * 53) % 90}%` : undefined,
+            animationDelay: `${((i * 0.29) % 2).toFixed(2)}s`,
+            animationDuration:
+              kind === "snow"
+                ? `${4 + (i % 5)}s`
+                : kind === "rain"
+                ? `${0.6 + (i % 4) * 0.12}s`
+                : undefined,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 // Standard QGIS GeoJSON FeatureCollection (CRS: EPSG:4326 / WGS84)
 const INITIAL_QGIS_GEOJSON = {
   type: "FeatureCollection",
@@ -255,9 +302,11 @@ function LiveWeatherBanner({ weather, onRefresh, loadingWeather }) {
   const wmo = decodeWmoWeather(weather.weather_code);
   const isSlipperyOrWet = wmo.wet || weather.precipitation > 0;
   const isColdBatteryRisk = weather.temperature_2m <= 5;
+  const theme = weatherTheme(weather.weather_code, weather.is_day);
 
   return (
-    <div className="weather-card shadow-sm">
+    <div className={`weather-card weather-${theme} shadow-sm`}>
+      <WeatherEffects theme={theme} />
       <div className="d-flex justify-content-between align-items-start gap-2">
         <div>
           <span className="badge bg-info text-dark fw-bold mb-1">
@@ -483,8 +532,9 @@ function QgisWebMap({
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const fittedRef = useRef(false);
 
-  const [basemap, setBasemap] = useState("topo");
+  const [basemap, setBasemap] = useState("clean");
   const [visibleLayers, setVisibleLayers] = useState({
     safe_corridor: true,
     steep_gradient_hazard: true,
@@ -502,6 +552,7 @@ function QgisWebMap({
         center: [53.386, -1.4975],
         zoom: 14,
         zoomControl: false,
+        scrollWheelZoom: false, // page scrolling must not zoom the map; use the +/- buttons
       });
       L.control.zoom({ position: "bottomright" }).addTo(map);
       mapInstanceRef.current = map;
@@ -510,7 +561,17 @@ function QgisWebMap({
     const map = mapInstanceRef.current;
     map.eachLayer((layer) => map.removeLayer(layer));
 
-    if (basemap === "topo") {
+    if (basemap === "clean") {
+      // Clean, Google-style street map (Esri World Street Map, no key needed)
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 19,
+          attribution:
+            "Tiles © Esri — Source: Esri, HERE, Garmin, USGS, NGA, EPA, USDA, NPS | Data: Live Roads (liveroads.co.uk)",
+        }
+      ).addTo(map);
+    } else if (basemap === "topo") {
       L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
         maxZoom: 17,
         attribution: "GIS: OpenTopoMap | Data: Live Roads (liveroads.co.uk)",
@@ -530,7 +591,21 @@ function QgisWebMap({
       ),
     };
 
-    L.geoJSON(activeFeatures, {
+    // White outline under route lines (Google Maps style), so they stand out on any base map
+    L.geoJSON(
+      {
+        ...activeFeatures,
+        features: activeFeatures.features.filter(
+          (f) => f.geometry.type === "LineString"
+        ),
+      },
+      {
+        style: () => ({ color: "#ffffff", weight: 11, opacity: 0.95 }),
+        interactive: false,
+      }
+    ).addTo(map);
+
+    const routeLayer = L.geoJSON(activeFeatures, {
       style: (feature) => {
         if (feature.geometry.type === "Polygon") {
           return {
@@ -551,8 +626,8 @@ function QgisWebMap({
         }
         return {
           color: showDisruption ? "#f59e0b" : "#16a34a",
-          weight: 6,
-          opacity: 0.95,
+          weight: 7,
+          opacity: 1,
         };
       },
       pointToLayer: (feature, latlng) => {
@@ -582,6 +657,13 @@ function QgisWebMap({
         layer.on("click", () => setSelectedFeatureProps(p));
       },
     }).addTo(map);
+
+    // Start framed on the whole route (once), so it is readable without zooming
+    const bounds = routeLayer.getBounds();
+    if (!fittedRef.current && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+      fittedRef.current = true;
+    }
 
     // 2. Render Live Roads API GeoJSON Layer if available
     if (visibleLayers.live_roads_api && liveRoadsGeoJson?.features?.length) {
@@ -662,6 +744,16 @@ function QgisWebMap({
             🗺️ QGIS Spatial Layers (CRS: EPSG:4326)
           </span>
           <div className="btn-group btn-group-sm">
+            <button
+              type="button"
+              onClick={() => setBasemap("clean")}
+              className={`btn btn-sm py-0 px-2 ${
+                basemap === "clean" ? "btn-info fw-bold" : "btn-outline-light"
+              }`}
+              style={{ fontSize: "0.72rem" }}
+            >
+              Simple
+            </button>
             <button
               type="button"
               onClick={() => setBasemap("topo")}
@@ -792,7 +884,7 @@ export default function App() {
     setLoadingWeather(true);
     try {
       const url =
-        "https://api.open-meteo.com/v1/forecast?latitude=53.3782&longitude=-1.4934&current=temperature_2m,apparent_temperature,precipitation,rain,weather_code,wind_speed_10m,wind_gusts_10m&timezone=Europe%2FLondon";
+        "https://api.open-meteo.com/v1/forecast?latitude=53.3782&longitude=-1.4934&current=temperature_2m,apparent_temperature,precipitation,rain,weather_code,wind_speed_10m,wind_gusts_10m,is_day&timezone=Europe%2FLondon";
       const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();

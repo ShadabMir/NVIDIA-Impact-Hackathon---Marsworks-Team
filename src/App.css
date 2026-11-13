@@ -75,7 +75,7 @@ body {
 
 .gmap-canvas {
   width: 100%;
-  height: 340px;
+  height: 420px;
   z-index: 1;
 }
 
@@ -142,6 +142,178 @@ body {
   color: #ffffff;
   border-radius: 12px;
   padding: 12px 14px;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.6s ease;
+}
+
+/* Content sits above the animated weather layer */
+.weather-card > :not(.weather-fx) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Keep secondary text readable on every background */
+.weather-card .text-white-50 {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+.weather-card .text-info {
+  color: #d3f9df !important; /* pale green: readable on blue, grey and night backgrounds */
+  font-weight: 600;
+}
+.weather-card .btn-outline-light {
+  background: rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+}
+
+/* ---------- Weather themes (gradients stay dark enough for white text) ---------- */
+.weather-sun {
+  background: linear-gradient(160deg, #0b5cad 0%, #1d77c9 55%, #3a8fd6 100%);
+}
+.weather-night {
+  background: linear-gradient(160deg, #050b1f 0%, #10204a 60%, #1c2f63 100%);
+}
+.weather-cloud {
+  background: linear-gradient(160deg, #3b4b5e 0%, #55667a 60%, #6a7b8f 100%);
+}
+.weather-fog {
+  background: linear-gradient(160deg, #4a5560 0%, #626d78 100%);
+}
+.weather-rain {
+  background: linear-gradient(160deg, #1f2b3a 0%, #2f4157 60%, #3c5068 100%);
+}
+.weather-snow {
+  background: linear-gradient(160deg, #2c4a6b 0%, #44678c 60%, #5a7fa3 100%);
+}
+.weather-storm {
+  background: linear-gradient(160deg, #120f24 0%, #241b45 60%, #33285c 100%);
+}
+
+.weather-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Sun glow */
+.wx-sun {
+  position: absolute;
+  top: -50px;
+  right: -40px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 221, 102, 0.95) 0%, rgba(255, 200, 60, 0.45) 35%, rgba(255, 200, 60, 0) 70%);
+  animation: wx-pulse 5s ease-in-out infinite;
+}
+@keyframes wx-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+/* Rain */
+.wx-rain {
+  position: absolute;
+  top: -20%;
+  width: 2px;
+  height: 18px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, rgba(173, 216, 255, 0), rgba(173, 216, 255, 0.5));
+  animation: wx-fall linear infinite;
+}
+@keyframes wx-fall {
+  to { transform: translate(-12px, 260px); }
+}
+
+/* Snow */
+.wx-snow {
+  position: absolute;
+  top: -10%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  animation: wx-snow linear infinite;
+}
+.wx-snow:nth-child(3n) { width: 4px; height: 4px; }
+.wx-snow:nth-child(4n) { width: 8px; height: 8px; opacity: 0.6; }
+@keyframes wx-snow {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(10px, 130px); }
+  100% { transform: translate(-6px, 260px); }
+}
+
+/* Stars */
+.wx-night {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #ffffff;
+  animation: wx-twinkle 3s ease-in-out infinite;
+}
+@keyframes wx-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+/* Drifting clouds */
+.wx-cloud {
+  position: absolute;
+  top: 8%;
+  width: 140px;
+  height: 46px;
+  border-radius: 46px;
+  background: rgba(255, 255, 255, 0.16);
+  animation: wx-drift 26s linear infinite;
+}
+.wx-cloud:nth-child(2) { top: 45%; width: 180px; animation-duration: 34s; }
+.wx-cloud:nth-child(3) { top: 70%; width: 120px; animation-duration: 30s; }
+@keyframes wx-drift {
+  from { transform: translateX(-180px); }
+  to { transform: translateX(640px); }
+}
+
+/* Fog bands */
+.wx-fog {
+  position: absolute;
+  left: -20% !important;
+  width: 140%;
+  height: 26px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.14);
+  animation: wx-fog 9s ease-in-out infinite alternate;
+}
+.wx-fog:nth-child(1) { top: 20%; }
+.wx-fog:nth-child(2) { top: 50%; }
+.wx-fog:nth-child(3) { top: 78%; }
+@keyframes wx-fog {
+  from { transform: translateX(-6%); }
+  to { transform: translateX(6%); }
+}
+
+/* Lightning flash */
+.wx-flash {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.55);
+  opacity: 0;
+  animation: wx-flash 7s infinite;
+}
+@keyframes wx-flash {
+  0%, 92%, 96%, 100% { opacity: 0; }
+  93%, 95% { opacity: 1; }
+}
+
+/* Respect the device's "reduce motion" setting: keep the look, stop the movement and flashes */
+@media (prefers-reduced-motion: reduce) {
+  .weather-fx * {
+    animation: none !important;
+  }
+  .wx-flash {
+    display: none;
+  }
 }
 
 .liveroads-card {
