@@ -235,6 +235,7 @@ def assess_option(
                     f"{mode.title()} {line} has one wheelchair space; if it is taken, the next is about {leg.get('frequency_minutes')} min later."))
 
         elif mode == "taxi":
+            minutes += leg.get("pickup_minutes", 0)
             if not needs.can_use_taxi:
                 barriers.append(_barrier("warning", "cost", "You said a taxi is not an option for you.",
                     "Ask the hospital about NHS Patient Transport or travel cost help."))
@@ -259,12 +260,19 @@ def assess_option(
     status = "unsuitable" if "blocking" in severities else "caution" if "warning" in severities else "suitable"
     legs = [LegOut(mode=leg["mode"], instruction=leg["instruction"], minutes=leg["minutes"],
                    distance_m=leg.get("distance_m", 0), max_gradient_pct=leg.get("max_gradient_pct"),
-                   line=leg.get("line"), geometry=leg.get("geometry"), map_stops=leg.get("map_stops", [])) for leg in option["legs"]]
+                   line=leg.get("line"), geometry=leg.get("geometry"), map_stops=leg.get("map_stops", []),
+                   wait_minutes=leg_wait(leg), streets=leg.get("streets", [])) for leg in option["legs"]]
     return OptionAssessment(
         id=option["id"], title=option["title"], kind=option["kind"], legs=legs,
         total_minutes=total, leave_at=leave_at, arrive_at=arrive_by, status=status,
         barriers=barriers, cost_note=option.get("cost_note"),
     )
+
+
+def leg_wait(leg: dict[str, Any]) -> int:
+    if leg["mode"] in TRANSIT:
+        return round(leg.get("frequency_minutes", 0) / 2)
+    return leg.get("pickup_minutes", 0)
 
 
 STATUS_RANK = {"suitable": 0, "caution": 1, "unsuitable": 2}

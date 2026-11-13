@@ -97,6 +97,8 @@ class LegOut(StrictModel):
     line: str | None = None
     geometry: RouteGeometry | None = None
     map_stops: list[MapStop] = Field(default_factory=list)
+    wait_minutes: int = 0  # expected wait before this leg (bus/tram interval, taxi pickup)
+    streets: list[str] = Field(default_factory=list)
 
 
 class OptionAssessment(StrictModel):
@@ -194,3 +196,57 @@ class AgentDraftResponse(StrictModel):
     sent: Literal[False] = False
     requires_review: Literal[True] = True
     generated_by: Literal["model", "template"]
+
+
+# --------------------------------------------------------------------------- live guidance (mid-journey)
+
+class GeoPoint(StrictModel):
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
+
+
+GuidanceProblem = Literal["pavement_blocked_ahead", "bus_delayed", "stuck", "running_late"]
+
+
+class GuidanceReplanRequest(StrictModel):
+    request: AgentPlanRequest
+    option_id: str = Field(min_length=1, max_length=80)
+    legs: list[dict[str, Any]] | None = Field(default=None, max_length=12,
+        description="The legs currently being followed, if they differ from the planned option (after an earlier re-plan).")
+    leg_index: int = Field(ge=0, le=20)
+    leg_progress: float = Field(ge=0, le=1)
+    position: GeoPoint
+    now: AwareDatetime
+    problem: GuidanceProblem
+    delay_minutes: int = Field(default=15, ge=0, le=120)
+    disruptions: list[AgentDisruption] = Field(default_factory=list, max_length=20)
+    use_model: bool = True
+
+
+class GuidanceCandidate(StrictModel):
+    id: str
+    kind: Literal["continue", "alternative_entrance", "taxi_from_here"]
+    title: str
+    status: Literal["suitable", "caution", "unsuitable"]
+    eta: AwareDatetime
+    late_minutes: int
+    problems: list[str]
+
+
+class GuidanceDecision(StrictModel):
+    problem: GuidanceProblem
+    action_id: str
+    action_kind: Literal["continue", "alternative_entrance", "taxi_from_here"]
+    say: str
+    reason: str
+    legs: list[LegOut]
+    entrance: dict[str, Any]
+    eta: AwareDatetime
+    arrive_by: AwareDatetime
+    late_minutes: int
+    notify_hospital: bool
+    candidates: list[GuidanceCandidate]
+    decided_by: Literal["model", "rules"]
+    disruptions_applied: list[AgentDisruption]
+    model_stats: ModelStats | None = None
+    agent_steps: list[AgentStep]

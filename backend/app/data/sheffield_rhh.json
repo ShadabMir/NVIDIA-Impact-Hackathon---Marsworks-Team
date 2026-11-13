@@ -1,5 +1,5 @@
 {
-  "_notice": "DEMO DATA for the Royal Hallamshire scenario. Route numbers, gradients, roadworks, events and toilets are illustrative and must be checked against Travel South Yorkshire, Sheffield City Council (Street Manager), Environment Agency LIDAR and AccessAble before any real use. Entrance names come from the Sheffield Teaching Hospitals accessibility list.",
+  "_notice": "DEMO DATA for the Royal Hallamshire scenario. Route numbers, gradients, roadworks, events and toilets are illustrative and must be checked against Travel South Yorkshire, Sheffield City Council (Street Manager), Environment Agency LIDAR and AccessAble before any real use. Entrance names come from the Sheffield Teaching Hospitals accessibility list. Map coordinates for routes, stops and entrances are approximate demo values.",
   "hospital": {
     "id": "royal-hallamshire",
     "name": "Royal Hallamshire Hospital",
@@ -8,152 +8,1104 @@
     "lon": -1.4893,
     "access_guide_url": "https://www.accessable.co.uk/sheffield-teaching-hospitals-nhs-foundation-trust",
     "entrances": [
-      {"id": "rhh-entrance-2", "name": "A Floor Outpatients Entrance (entrance 2)", "wheelchair_accessible": true, "use_for": ["outpatient", "clinic", "rehab", "neuro"], "notes": "Listed by the Trust as wheelchair accessible. Confirm lift and drop-off details on AccessAble."},
-      {"id": "rhh-entrance-9", "name": "B Floor Main Entrance (entrance 9)", "wheelchair_accessible": true, "use_for": ["ward", "inpatient", "main", "visitor"], "notes": "Listed by the Trust as wheelchair accessible. Main reception and lifts."},
-      {"id": "rhh-entrance-12", "name": "Minor Injuries Entrance (entrance 12)", "wheelchair_accessible": true, "use_for": ["minor injuries", "injury", "urgent"], "notes": "Listed by the Trust as wheelchair accessible."}
+      {
+        "id": "rhh-entrance-2",
+        "name": "A Floor Outpatients Entrance (entrance 2)",
+        "wheelchair_accessible": true,
+        "use_for": [
+          "outpatient",
+          "clinic",
+          "rehab",
+          "neuro"
+        ],
+        "notes": "Listed by the Trust as wheelchair accessible. Confirm lift and drop-off details on AccessAble.",
+        "coordinate": [
+          -1.4893,
+          53.3788
+        ]
+      },
+      {
+        "id": "rhh-entrance-9",
+        "name": "B Floor Main Entrance (entrance 9)",
+        "wheelchair_accessible": true,
+        "use_for": [
+          "ward",
+          "inpatient",
+          "main",
+          "visitor"
+        ],
+        "notes": "Listed by the Trust as wheelchair accessible. Main reception and lifts.",
+        "coordinate": [
+          -1.4876,
+          53.3793
+        ]
+      },
+      {
+        "id": "rhh-entrance-12",
+        "name": "Minor Injuries Entrance (entrance 12)",
+        "wheelchair_accessible": true,
+        "use_for": [
+          "minor injuries",
+          "injury",
+          "urgent"
+        ],
+        "notes": "Listed by the Trust as wheelchair accessible.",
+        "coordinate": [
+          -1.4899,
+          53.3781
+        ]
+      }
+    ],
+    "approaches": [
+      {
+        "id": "beech-hill-to-entrance-2",
+        "from_stop": "glossop-rd-beech-hill",
+        "entrance_id": "rhh-entrance-2",
+        "title": "Beech Hill Road to the A Floor Outpatients Entrance",
+        "leg": {
+          "mode": "roll",
+          "instruction": "Roll 50 m down Beech Hill Road to the A Floor Outpatients Entrance.",
+          "minutes": 3,
+          "distance_m": 50,
+          "max_gradient_pct": 4.0,
+          "streets": [
+            "beech-hill-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true,
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.4883,
+                53.38005
+              ],
+              [
+                -1.4888,
+                53.3795
+              ],
+              [
+                -1.4893,
+                53.3788
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "id": "glossop-to-entrance-9",
+        "from_stop": "glossop-rd-beech-hill",
+        "entrance_id": "rhh-entrance-9",
+        "title": "Glossop Road to the B Floor Main Entrance",
+        "leg": {
+          "mode": "roll",
+          "instruction": "Roll 120 m along Glossop Road to the B Floor Main Entrance, then take the lift to A Floor.",
+          "minutes": 5,
+          "distance_m": 120,
+          "max_gradient_pct": 3.0,
+          "streets": [
+            "glossop-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true,
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.4883,
+                53.38005
+              ],
+              [
+                -1.488,
+                53.3797
+              ],
+              [
+                -1.4876,
+                53.3793
+              ]
+            ]
+          }
+        }
+      }
     ]
   },
   "origins": [
-    {"id": "walkley", "name": "Walkley (S6) — Margaret's home", "lat": 53.3953, "lon": -1.4979},
-    {"id": "hillsborough", "name": "Hillsborough (S6)", "lat": 53.4063, "lon": -1.5011},
-    {"id": "city-centre", "name": "Sheffield Interchange (city centre)", "lat": 53.3797, "lon": -1.4645},
-    {"id": "sheffield-station", "name": "Sheffield railway station", "lat": 53.3781, "lon": -1.4620},
-    {"id": "meadowhall", "name": "Meadowhall Interchange", "lat": 53.4170, "lon": -1.4127},
-    {"id": "rotherham", "name": "Rotherham (no route data yet)", "lat": 53.4326, "lon": -1.3635, "no_data": true},
-    {"id": "elsewhere", "name": "Somewhere else (no route data yet)", "no_data": true}
+    {
+      "id": "walkley",
+      "name": "Walkley (S6) — Margaret's home",
+      "lat": 53.3953,
+      "lon": -1.4979
+    },
+    {
+      "id": "hillsborough",
+      "name": "Hillsborough (S6)",
+      "lat": 53.4063,
+      "lon": -1.5011
+    },
+    {
+      "id": "city-centre",
+      "name": "Sheffield Interchange (city centre)",
+      "lat": 53.3797,
+      "lon": -1.4645
+    },
+    {
+      "id": "sheffield-station",
+      "name": "Sheffield railway station",
+      "lat": 53.3781,
+      "lon": -1.462
+    },
+    {
+      "id": "meadowhall",
+      "name": "Meadowhall Interchange",
+      "lat": 53.417,
+      "lon": -1.4127
+    },
+    {
+      "id": "rotherham",
+      "name": "Rotherham (no route data yet)",
+      "lat": 53.4326,
+      "lon": -1.3635,
+      "no_data": true
+    },
+    {
+      "id": "elsewhere",
+      "name": "Somewhere else (no route data yet)",
+      "no_data": true
+    }
   ],
   "options": [
     {
-      "id": "walkley-bus-95", "origin_id": "walkley", "title": "Bus 95: South Road to Glossop Road", "kind": "public",
+      "id": "walkley-bus-95",
+      "origin_id": "walkley",
+      "title": "Bus 95: South Road to Glossop Road",
+      "kind": "public",
       "legs": [
-        {"mode": "roll", "instruction": "Roll 45 m along level pavement on South Road to the South Rd / Fir St stop.", "minutes": 3, "distance_m": 45, "max_gradient_pct": 2.5, "streets": ["south-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true},
-        {"mode": "bus", "line": "95", "instruction": "Bus 95 towards the city centre. Ask the driver for the ramp. Alight at Glossop Rd / Beech Hill Rd.", "minutes": 18, "frequency_minutes": 12, "stops": ["south-rd-fir-st", "glossop-rd-beech-hill"], "wheelchair_spaces": 1},
-        {"mode": "roll", "instruction": "Roll 50 m down Beech Hill Road to the A Floor Outpatients Entrance.", "minutes": 3, "distance_m": 50, "max_gradient_pct": 4.0, "streets": ["beech-hill-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true}
+        {
+          "mode": "roll",
+          "instruction": "Roll 45 m along level pavement on South Road to the South Rd / Fir St stop.",
+          "minutes": 3,
+          "distance_m": 45,
+          "max_gradient_pct": 2.5,
+          "streets": [
+            "south-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true,
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.4979,
+                53.3953
+              ],
+              [
+                -1.4984,
+                53.39545
+              ]
+            ]
+          }
+        },
+        {
+          "mode": "bus",
+          "line": "95",
+          "instruction": "Bus 95 towards the city centre. Ask the driver for the ramp. Alight at Glossop Rd / Beech Hill Rd.",
+          "minutes": 18,
+          "frequency_minutes": 12,
+          "stops": [
+            "south-rd-fir-st",
+            "glossop-rd-beech-hill"
+          ],
+          "wheelchair_spaces": 1,
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.4984,
+                53.39545
+              ],
+              [
+                -1.4972,
+                53.394
+              ],
+              [
+                -1.4955,
+                53.3921
+              ],
+              [
+                -1.4938,
+                53.3898
+              ],
+              [
+                -1.4921,
+                53.3874
+              ],
+              [
+                -1.4906,
+                53.3851
+              ],
+              [
+                -1.4895,
+                53.383
+              ],
+              [
+                -1.4889,
+                53.3812
+              ],
+              [
+                -1.4883,
+                53.38005
+              ]
+            ]
+          },
+          "map_stops": [
+            {
+              "name": "South Rd / Fir St",
+              "coordinate": [
+                -1.4984,
+                53.39545
+              ]
+            },
+            {
+              "name": "Glossop Rd / Beech Hill Rd",
+              "coordinate": [
+                -1.4883,
+                53.38005
+              ]
+            }
+          ]
+        },
+        {
+          "mode": "roll",
+          "instruction": "Roll 50 m down Beech Hill Road to the A Floor Outpatients Entrance.",
+          "minutes": 3,
+          "distance_m": 50,
+          "max_gradient_pct": 4.0,
+          "streets": [
+            "beech-hill-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true,
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.4883,
+                53.38005
+              ],
+              [
+                -1.4888,
+                53.3795
+              ],
+              [
+                -1.4893,
+                53.3788
+              ]
+            ]
+          }
+        }
       ]
     },
     {
-      "id": "walkley-tram-western-bank", "origin_id": "walkley", "title": "Tram from Infirmary Road, then Western Bank", "kind": "public",
+      "id": "walkley-tram-western-bank",
+      "origin_id": "walkley",
+      "title": "Tram from Infirmary Road, then Western Bank",
+      "kind": "public",
       "legs": [
-        {"mode": "roll", "instruction": "Roll 700 m down Howard Road to the Infirmary Road tram stop.", "minutes": 12, "distance_m": 700, "max_gradient_pct": 12.5, "streets": ["howard-road", "infirmary-road"], "step_free": true, "dropped_kerbs": true, "surface": "uneven", "exposed": true},
-        {"mode": "tram", "lines": ["Blue", "Yellow"], "line": "Blue", "instruction": "Supertram Blue or Yellow towards the city. Alight at University of Sheffield.", "minutes": 6, "frequency_minutes": 10, "stops": ["infirmary-road-tram", "university-tram"], "wheelchair_spaces": 2},
-        {"mode": "roll", "instruction": "Roll 650 m along Western Bank and Glossop Road to the hospital.", "minutes": 11, "distance_m": 650, "max_gradient_pct": 5.5, "streets": ["western-bank", "glossop-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true}
+        {
+          "mode": "roll",
+          "instruction": "Roll 700 m down Howard Road to the Infirmary Road tram stop.",
+          "minutes": 12,
+          "distance_m": 700,
+          "max_gradient_pct": 12.5,
+          "streets": [
+            "howard-road",
+            "infirmary-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "uneven",
+          "exposed": true
+        },
+        {
+          "mode": "tram",
+          "lines": [
+            "Blue",
+            "Yellow"
+          ],
+          "line": "Blue",
+          "instruction": "Supertram Blue or Yellow towards the city. Alight at University of Sheffield.",
+          "minutes": 6,
+          "frequency_minutes": 10,
+          "stops": [
+            "infirmary-road-tram",
+            "university-tram"
+          ],
+          "wheelchair_spaces": 2
+        },
+        {
+          "mode": "roll",
+          "instruction": "Roll 650 m along Western Bank and Glossop Road to the hospital.",
+          "minutes": 11,
+          "distance_m": 650,
+          "max_gradient_pct": 5.5,
+          "streets": [
+            "western-bank",
+            "glossop-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        }
       ]
     },
     {
-      "id": "walkley-bus-52-clarkehouse", "origin_id": "walkley", "title": "Bus 52 via Crookes, then Newbould Lane", "kind": "public",
+      "id": "walkley-bus-52-clarkehouse",
+      "origin_id": "walkley",
+      "title": "Bus 52 via Crookes, then Newbould Lane",
+      "kind": "public",
       "legs": [
-        {"mode": "roll", "instruction": "Roll 120 m to the Walkley Road stop.", "minutes": 4, "distance_m": 120, "max_gradient_pct": 4.0, "streets": ["walkley-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true},
-        {"mode": "bus", "line": "52", "instruction": "Bus 52 via Crookes. Alight at Clarkehouse Road.", "minutes": 22, "frequency_minutes": 15, "stops": ["walkley-rd-stop", "clarkehouse-rd-stop"], "wheelchair_spaces": 1},
-        {"mode": "roll", "instruction": "Roll 290 m up Newbould Lane to Glossop Road.", "minutes": 7, "distance_m": 290, "max_gradient_pct": 12.5, "streets": ["newbould-lane", "glossop-road"], "step_free": true, "dropped_kerbs": false, "surface": "smooth", "exposed": true}
+        {
+          "mode": "roll",
+          "instruction": "Roll 120 m to the Walkley Road stop.",
+          "minutes": 4,
+          "distance_m": 120,
+          "max_gradient_pct": 4.0,
+          "streets": [
+            "walkley-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        },
+        {
+          "mode": "bus",
+          "line": "52",
+          "instruction": "Bus 52 via Crookes. Alight at Clarkehouse Road.",
+          "minutes": 22,
+          "frequency_minutes": 15,
+          "stops": [
+            "walkley-rd-stop",
+            "clarkehouse-rd-stop"
+          ],
+          "wheelchair_spaces": 1
+        },
+        {
+          "mode": "roll",
+          "instruction": "Roll 290 m up Newbould Lane to Glossop Road.",
+          "minutes": 7,
+          "distance_m": 290,
+          "max_gradient_pct": 12.5,
+          "streets": [
+            "newbould-lane",
+            "glossop-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": false,
+          "surface": "smooth",
+          "exposed": true
+        }
       ]
     },
     {
-      "id": "walkley-taxi", "origin_id": "walkley", "title": "Wheelchair-accessible taxi, door to door", "kind": "taxi", "cost_note": "About £12–£16 (demo estimate). Book a wheelchair-accessible vehicle at least 24 hours ahead.",
+      "id": "walkley-taxi",
+      "origin_id": "walkley",
+      "title": "Wheelchair-accessible taxi, door to door",
+      "kind": "taxi",
+      "cost_note": "About £12–£16 (demo estimate). Book a wheelchair-accessible vehicle at least 24 hours ahead.",
       "legs": [
-        {"mode": "taxi", "instruction": "Wheelchair-accessible taxi from home to the A Floor Outpatients Entrance drop-off.", "minutes": 15, "frequency_minutes": 0}
-      ]
-    },
-
-    {
-      "id": "hillsborough-tram", "origin_id": "hillsborough", "title": "Tram to University of Sheffield, then Western Bank", "kind": "public",
-      "legs": [
-        {"mode": "roll", "instruction": "Roll 80 m to Hillsborough tram stop.", "minutes": 3, "distance_m": 80, "max_gradient_pct": 2.0, "streets": ["middlewood-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true},
-        {"mode": "tram", "lines": ["Blue", "Yellow"], "line": "Yellow", "instruction": "Supertram Blue or Yellow towards the city. Alight at University of Sheffield.", "minutes": 12, "frequency_minutes": 10, "stops": ["hillsborough-tram", "university-tram"], "wheelchair_spaces": 2},
-        {"mode": "roll", "instruction": "Roll 650 m along Western Bank and Glossop Road to the hospital.", "minutes": 11, "distance_m": 650, "max_gradient_pct": 5.5, "streets": ["western-bank", "glossop-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true}
-      ]
-    },
-    {
-      "id": "hillsborough-bus-52", "origin_id": "hillsborough", "title": "Bus 52 via Crookes to Glossop Road", "kind": "public",
-      "legs": [
-        {"mode": "roll", "instruction": "Roll 60 m to the Hillsborough Interchange bus stand.", "minutes": 2, "distance_m": 60, "max_gradient_pct": 1.5, "streets": ["middlewood-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": false},
-        {"mode": "bus", "line": "52", "instruction": "Bus 52 via Crookes. Alight at Glossop Rd / Beech Hill Rd.", "minutes": 24, "frequency_minutes": 15, "stops": ["hillsborough-interchange", "glossop-rd-beech-hill"], "wheelchair_spaces": 1},
-        {"mode": "roll", "instruction": "Roll 50 m down Beech Hill Road to the A Floor Outpatients Entrance.", "minutes": 3, "distance_m": 50, "max_gradient_pct": 4.0, "streets": ["beech-hill-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true}
-      ]
-    },
-    {
-      "id": "hillsborough-taxi", "origin_id": "hillsborough", "title": "Wheelchair-accessible taxi, door to door", "kind": "taxi", "cost_note": "About £14–£18 (demo estimate). Book a wheelchair-accessible vehicle at least 24 hours ahead.",
-      "legs": [{"mode": "taxi", "instruction": "Wheelchair-accessible taxi to the A Floor Outpatients Entrance drop-off.", "minutes": 16, "frequency_minutes": 0}]
-    },
-
-    {
-      "id": "city-bus-120", "origin_id": "city-centre", "title": "Bus 120 from Arundel Gate to Glossop Road", "kind": "public",
-      "legs": [
-        {"mode": "roll", "instruction": "Roll 250 m from the Interchange to the Arundel Gate stop.", "minutes": 5, "distance_m": 250, "max_gradient_pct": 3.0, "streets": ["arundel-gate"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true},
-        {"mode": "bus", "line": "120", "instruction": "Bus 120 towards Fulwood. Alight at Glossop Rd / Beech Hill Rd.", "minutes": 12, "frequency_minutes": 10, "stops": ["arundel-gate-stop", "glossop-rd-beech-hill"], "wheelchair_spaces": 1},
-        {"mode": "roll", "instruction": "Roll 50 m down Beech Hill Road to the A Floor Outpatients Entrance.", "minutes": 3, "distance_m": 50, "max_gradient_pct": 4.0, "streets": ["beech-hill-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true}
-      ]
-    },
-    {
-      "id": "city-tram-cathedral", "origin_id": "city-centre", "title": "Tram from Cathedral, then Western Bank", "kind": "public",
-      "legs": [
-        {"mode": "roll", "instruction": "Roll 700 m from the Interchange to Cathedral tram stop.", "minutes": 12, "distance_m": 700, "max_gradient_pct": 4.5, "streets": ["arundel-gate", "church-street"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true},
-        {"mode": "tram", "lines": ["Blue", "Yellow"], "line": "Blue", "instruction": "Supertram Blue or Yellow towards Malin Bridge / Middlewood. Alight at University of Sheffield.", "minutes": 5, "frequency_minutes": 10, "stops": ["cathedral-tram", "university-tram"], "wheelchair_spaces": 2},
-        {"mode": "roll", "instruction": "Roll 650 m along Western Bank and Glossop Road to the hospital.", "minutes": 11, "distance_m": 650, "max_gradient_pct": 5.5, "streets": ["western-bank", "glossop-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true}
-      ]
-    },
-    {
-      "id": "city-taxi", "origin_id": "city-centre", "title": "Wheelchair-accessible taxi, door to door", "kind": "taxi", "cost_note": "About £8–£11 (demo estimate). Taxi rank at the Interchange; wheelchair-accessible vehicles are not guaranteed without booking.",
-      "legs": [{"mode": "taxi", "instruction": "Wheelchair-accessible taxi to the A Floor Outpatients Entrance drop-off.", "minutes": 10, "frequency_minutes": 0}]
-    },
-
-    {
-      "id": "station-roll-bus-120", "origin_id": "sheffield-station", "title": "Sheaf Street to the Interchange, then Bus 120", "kind": "public",
-      "legs": [
-        {"mode": "roll", "instruction": "Roll 300 m along Sheaf Street to the Arundel Gate stop.", "minutes": 6, "distance_m": 300, "max_gradient_pct": 3.5, "streets": ["sheaf-street", "arundel-gate"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true},
-        {"mode": "bus", "line": "120", "instruction": "Bus 120 towards Fulwood. Alight at Glossop Rd / Beech Hill Rd.", "minutes": 12, "frequency_minutes": 10, "stops": ["arundel-gate-stop", "glossop-rd-beech-hill"], "wheelchair_spaces": 1},
-        {"mode": "roll", "instruction": "Roll 50 m down Beech Hill Road to the A Floor Outpatients Entrance.", "minutes": 3, "distance_m": 50, "max_gradient_pct": 4.0, "streets": ["beech-hill-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true}
+        {
+          "mode": "taxi",
+          "instruction": "Wheelchair-accessible taxi from home to the A Floor Outpatients Entrance drop-off.",
+          "minutes": 15,
+          "frequency_minutes": 0,
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.4979,
+                53.3953
+              ],
+              [
+                -1.4955,
+                53.3921
+              ],
+              [
+                -1.4921,
+                53.3874
+              ],
+              [
+                -1.4895,
+                53.383
+              ],
+              [
+                -1.4889,
+                53.3812
+              ],
+              [
+                -1.4893,
+                53.3788
+              ]
+            ]
+          }
+        }
       ]
     },
     {
-      "id": "station-tram-change", "origin_id": "sheffield-station", "title": "Purple tram to Cathedral, change to Blue/Yellow", "kind": "public",
+      "id": "hillsborough-tram",
+      "origin_id": "hillsborough",
+      "title": "Tram to University of Sheffield, then Western Bank",
+      "kind": "public",
       "legs": [
-        {"mode": "tram", "line": "Purple", "instruction": "Supertram Purple from the Station stop to Cathedral.", "minutes": 6, "frequency_minutes": 20, "stops": ["station-tram", "cathedral-tram"], "wheelchair_spaces": 2},
-        {"mode": "tram", "lines": ["Blue", "Yellow"], "line": "Blue", "instruction": "Change at Cathedral (same platform area) to Blue or Yellow. Alight at University of Sheffield.", "minutes": 5, "frequency_minutes": 10, "stops": ["cathedral-tram", "university-tram"], "wheelchair_spaces": 2},
-        {"mode": "roll", "instruction": "Roll 650 m along Western Bank and Glossop Road to the hospital.", "minutes": 11, "distance_m": 650, "max_gradient_pct": 5.5, "streets": ["western-bank", "glossop-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true}
+        {
+          "mode": "roll",
+          "instruction": "Roll 80 m to Hillsborough tram stop.",
+          "minutes": 3,
+          "distance_m": 80,
+          "max_gradient_pct": 2.0,
+          "streets": [
+            "middlewood-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        },
+        {
+          "mode": "tram",
+          "lines": [
+            "Blue",
+            "Yellow"
+          ],
+          "line": "Yellow",
+          "instruction": "Supertram Blue or Yellow towards the city. Alight at University of Sheffield.",
+          "minutes": 12,
+          "frequency_minutes": 10,
+          "stops": [
+            "hillsborough-tram",
+            "university-tram"
+          ],
+          "wheelchair_spaces": 2
+        },
+        {
+          "mode": "roll",
+          "instruction": "Roll 650 m along Western Bank and Glossop Road to the hospital.",
+          "minutes": 11,
+          "distance_m": 650,
+          "max_gradient_pct": 5.5,
+          "streets": [
+            "western-bank",
+            "glossop-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        }
       ]
     },
     {
-      "id": "station-taxi", "origin_id": "sheffield-station", "title": "Wheelchair-accessible taxi, door to door", "kind": "taxi", "cost_note": "About £8–£11 (demo estimate). Station rank; book ahead for a wheelchair-accessible vehicle.",
-      "legs": [{"mode": "taxi", "instruction": "Wheelchair-accessible taxi to the A Floor Outpatients Entrance drop-off.", "minutes": 11, "frequency_minutes": 0}]
-    },
-
-    {
-      "id": "meadowhall-tram", "origin_id": "meadowhall", "title": "Yellow tram direct to University of Sheffield", "kind": "public",
+      "id": "hillsborough-bus-52",
+      "origin_id": "hillsborough",
+      "title": "Bus 52 via Crookes to Glossop Road",
+      "kind": "public",
       "legs": [
-        {"mode": "tram", "line": "Yellow", "instruction": "Supertram Yellow towards Middlewood. Alight at University of Sheffield.", "minutes": 30, "frequency_minutes": 10, "stops": ["meadowhall-tram", "university-tram"], "wheelchair_spaces": 2},
-        {"mode": "roll", "instruction": "Roll 650 m along Western Bank and Glossop Road to the hospital.", "minutes": 11, "distance_m": 650, "max_gradient_pct": 5.5, "streets": ["western-bank", "glossop-road"], "step_free": true, "dropped_kerbs": true, "surface": "smooth", "exposed": true}
+        {
+          "mode": "roll",
+          "instruction": "Roll 60 m to the Hillsborough Interchange bus stand.",
+          "minutes": 2,
+          "distance_m": 60,
+          "max_gradient_pct": 1.5,
+          "streets": [
+            "middlewood-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": false
+        },
+        {
+          "mode": "bus",
+          "line": "52",
+          "instruction": "Bus 52 via Crookes. Alight at Glossop Rd / Beech Hill Rd.",
+          "minutes": 24,
+          "frequency_minutes": 15,
+          "stops": [
+            "hillsborough-interchange",
+            "glossop-rd-beech-hill"
+          ],
+          "wheelchair_spaces": 1
+        },
+        {
+          "mode": "roll",
+          "instruction": "Roll 50 m down Beech Hill Road to the A Floor Outpatients Entrance.",
+          "minutes": 3,
+          "distance_m": 50,
+          "max_gradient_pct": 4.0,
+          "streets": [
+            "beech-hill-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        }
       ]
     },
     {
-      "id": "meadowhall-taxi", "origin_id": "meadowhall", "title": "Wheelchair-accessible taxi, door to door", "kind": "taxi", "cost_note": "About £22–£28 (demo estimate). Book a wheelchair-accessible vehicle at least 24 hours ahead.",
-      "legs": [{"mode": "taxi", "instruction": "Wheelchair-accessible taxi to the A Floor Outpatients Entrance drop-off.", "minutes": 22, "frequency_minutes": 0}]
+      "id": "hillsborough-taxi",
+      "origin_id": "hillsborough",
+      "title": "Wheelchair-accessible taxi, door to door",
+      "kind": "taxi",
+      "cost_note": "About £14–£18 (demo estimate). Book a wheelchair-accessible vehicle at least 24 hours ahead.",
+      "legs": [
+        {
+          "mode": "taxi",
+          "instruction": "Wheelchair-accessible taxi to the A Floor Outpatients Entrance drop-off.",
+          "minutes": 16,
+          "frequency_minutes": 0
+        }
+      ]
+    },
+    {
+      "id": "city-bus-120",
+      "origin_id": "city-centre",
+      "title": "Bus 120 from Arundel Gate to Glossop Road",
+      "kind": "public",
+      "legs": [
+        {
+          "mode": "roll",
+          "instruction": "Roll 250 m from the Interchange to the Arundel Gate stop.",
+          "minutes": 5,
+          "distance_m": 250,
+          "max_gradient_pct": 3.0,
+          "streets": [
+            "arundel-gate"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        },
+        {
+          "mode": "bus",
+          "line": "120",
+          "instruction": "Bus 120 towards Fulwood. Alight at Glossop Rd / Beech Hill Rd.",
+          "minutes": 12,
+          "frequency_minutes": 10,
+          "stops": [
+            "arundel-gate-stop",
+            "glossop-rd-beech-hill"
+          ],
+          "wheelchair_spaces": 1
+        },
+        {
+          "mode": "roll",
+          "instruction": "Roll 50 m down Beech Hill Road to the A Floor Outpatients Entrance.",
+          "minutes": 3,
+          "distance_m": 50,
+          "max_gradient_pct": 4.0,
+          "streets": [
+            "beech-hill-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        }
+      ]
+    },
+    {
+      "id": "city-tram-cathedral",
+      "origin_id": "city-centre",
+      "title": "Tram from Cathedral, then Western Bank",
+      "kind": "public",
+      "legs": [
+        {
+          "mode": "roll",
+          "instruction": "Roll 700 m from the Interchange to Cathedral tram stop.",
+          "minutes": 12,
+          "distance_m": 700,
+          "max_gradient_pct": 4.5,
+          "streets": [
+            "arundel-gate",
+            "church-street"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        },
+        {
+          "mode": "tram",
+          "lines": [
+            "Blue",
+            "Yellow"
+          ],
+          "line": "Blue",
+          "instruction": "Supertram Blue or Yellow towards Malin Bridge / Middlewood. Alight at University of Sheffield.",
+          "minutes": 5,
+          "frequency_minutes": 10,
+          "stops": [
+            "cathedral-tram",
+            "university-tram"
+          ],
+          "wheelchair_spaces": 2
+        },
+        {
+          "mode": "roll",
+          "instruction": "Roll 650 m along Western Bank and Glossop Road to the hospital.",
+          "minutes": 11,
+          "distance_m": 650,
+          "max_gradient_pct": 5.5,
+          "streets": [
+            "western-bank",
+            "glossop-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        }
+      ]
+    },
+    {
+      "id": "city-taxi",
+      "origin_id": "city-centre",
+      "title": "Wheelchair-accessible taxi, door to door",
+      "kind": "taxi",
+      "cost_note": "About £8–£11 (demo estimate). Taxi rank at the Interchange; wheelchair-accessible vehicles are not guaranteed without booking.",
+      "legs": [
+        {
+          "mode": "taxi",
+          "instruction": "Wheelchair-accessible taxi to the A Floor Outpatients Entrance drop-off.",
+          "minutes": 10,
+          "frequency_minutes": 0
+        }
+      ]
+    },
+    {
+      "id": "station-roll-bus-120",
+      "origin_id": "sheffield-station",
+      "title": "Sheaf Street to the Interchange, then Bus 120",
+      "kind": "public",
+      "legs": [
+        {
+          "mode": "roll",
+          "instruction": "Roll 300 m along Sheaf Street to the Arundel Gate stop.",
+          "minutes": 6,
+          "distance_m": 300,
+          "max_gradient_pct": 3.5,
+          "streets": [
+            "sheaf-street",
+            "arundel-gate"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        },
+        {
+          "mode": "bus",
+          "line": "120",
+          "instruction": "Bus 120 towards Fulwood. Alight at Glossop Rd / Beech Hill Rd.",
+          "minutes": 12,
+          "frequency_minutes": 10,
+          "stops": [
+            "arundel-gate-stop",
+            "glossop-rd-beech-hill"
+          ],
+          "wheelchair_spaces": 1
+        },
+        {
+          "mode": "roll",
+          "instruction": "Roll 50 m down Beech Hill Road to the A Floor Outpatients Entrance.",
+          "minutes": 3,
+          "distance_m": 50,
+          "max_gradient_pct": 4.0,
+          "streets": [
+            "beech-hill-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        }
+      ]
+    },
+    {
+      "id": "station-tram-change",
+      "origin_id": "sheffield-station",
+      "title": "Purple tram to Cathedral, change to Blue/Yellow",
+      "kind": "public",
+      "legs": [
+        {
+          "mode": "tram",
+          "line": "Purple",
+          "instruction": "Supertram Purple from the Station stop to Cathedral.",
+          "minutes": 6,
+          "frequency_minutes": 20,
+          "stops": [
+            "station-tram",
+            "cathedral-tram"
+          ],
+          "wheelchair_spaces": 2
+        },
+        {
+          "mode": "tram",
+          "lines": [
+            "Blue",
+            "Yellow"
+          ],
+          "line": "Blue",
+          "instruction": "Change at Cathedral (same platform area) to Blue or Yellow. Alight at University of Sheffield.",
+          "minutes": 5,
+          "frequency_minutes": 10,
+          "stops": [
+            "cathedral-tram",
+            "university-tram"
+          ],
+          "wheelchair_spaces": 2
+        },
+        {
+          "mode": "roll",
+          "instruction": "Roll 650 m along Western Bank and Glossop Road to the hospital.",
+          "minutes": 11,
+          "distance_m": 650,
+          "max_gradient_pct": 5.5,
+          "streets": [
+            "western-bank",
+            "glossop-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        }
+      ]
+    },
+    {
+      "id": "station-taxi",
+      "origin_id": "sheffield-station",
+      "title": "Wheelchair-accessible taxi, door to door",
+      "kind": "taxi",
+      "cost_note": "About £8–£11 (demo estimate). Station rank; book ahead for a wheelchair-accessible vehicle.",
+      "legs": [
+        {
+          "mode": "taxi",
+          "instruction": "Wheelchair-accessible taxi to the A Floor Outpatients Entrance drop-off.",
+          "minutes": 11,
+          "frequency_minutes": 0
+        }
+      ]
+    },
+    {
+      "id": "meadowhall-tram",
+      "origin_id": "meadowhall",
+      "title": "Yellow tram direct to University of Sheffield",
+      "kind": "public",
+      "legs": [
+        {
+          "mode": "tram",
+          "line": "Yellow",
+          "instruction": "Supertram Yellow towards Middlewood. Alight at University of Sheffield.",
+          "minutes": 30,
+          "frequency_minutes": 10,
+          "stops": [
+            "meadowhall-tram",
+            "university-tram"
+          ],
+          "wheelchair_spaces": 2
+        },
+        {
+          "mode": "roll",
+          "instruction": "Roll 650 m along Western Bank and Glossop Road to the hospital.",
+          "minutes": 11,
+          "distance_m": 650,
+          "max_gradient_pct": 5.5,
+          "streets": [
+            "western-bank",
+            "glossop-road"
+          ],
+          "step_free": true,
+          "dropped_kerbs": true,
+          "surface": "smooth",
+          "exposed": true
+        }
+      ]
+    },
+    {
+      "id": "meadowhall-taxi",
+      "origin_id": "meadowhall",
+      "title": "Wheelchair-accessible taxi, door to door",
+      "kind": "taxi",
+      "cost_note": "About £22–£28 (demo estimate). Book a wheelchair-accessible vehicle at least 24 hours ahead.",
+      "legs": [
+        {
+          "mode": "taxi",
+          "instruction": "Wheelchair-accessible taxi to the A Floor Outpatients Entrance drop-off.",
+          "minutes": 22,
+          "frequency_minutes": 0
+        }
+      ]
     }
   ],
   "roadworks": [
-    {"id": "rw-western-bank", "street": "western-bank", "street_name": "Western Bank", "description": "Footway resurfacing on the north side. Pavement closed; signed diversion uses a crossing without dropped kerbs.", "start": "2026-11-02", "end": "2026-11-27", "pavement_closed": true, "diversion_step_free": false, "min_footway_width_mm": null},
-    {"id": "rw-glossop-road", "street": "glossop-road", "street_name": "Glossop Road", "description": "Utility works near Newbould Lane. Footway narrowed by barriers.", "start": "2026-11-09", "end": "2026-11-20", "pavement_closed": false, "diversion_step_free": true, "min_footway_width_mm": 900},
-    {"id": "rw-sheaf-street", "street": "sheaf-street", "street_name": "Sheaf Street", "description": "Gas main works with a temporary signalised crossing (step-free).", "start": "2026-11-01", "end": "2026-12-04", "pavement_closed": false, "diversion_step_free": true, "min_footway_width_mm": 1500}
+    {
+      "id": "rw-western-bank",
+      "street": "western-bank",
+      "street_name": "Western Bank",
+      "description": "Footway resurfacing on the north side. Pavement closed; signed diversion uses a crossing without dropped kerbs.",
+      "start": "2026-11-02",
+      "end": "2026-11-27",
+      "pavement_closed": true,
+      "diversion_step_free": false,
+      "min_footway_width_mm": null
+    },
+    {
+      "id": "rw-glossop-road",
+      "street": "glossop-road",
+      "street_name": "Glossop Road",
+      "description": "Utility works near Newbould Lane. Footway narrowed by barriers.",
+      "start": "2026-11-09",
+      "end": "2026-11-20",
+      "pavement_closed": false,
+      "diversion_step_free": true,
+      "min_footway_width_mm": 900
+    },
+    {
+      "id": "rw-sheaf-street",
+      "street": "sheaf-street",
+      "street_name": "Sheaf Street",
+      "description": "Gas main works with a temporary signalised crossing (step-free).",
+      "start": "2026-11-01",
+      "end": "2026-12-04",
+      "pavement_closed": false,
+      "diversion_step_free": true,
+      "min_footway_width_mm": 1500
+    }
   ],
   "events": [
-    {"id": "ev-hillsborough-football", "name": "Football match at Hillsborough Stadium (demo)", "date": "2026-11-14", "start": "12:30", "end": "17:30", "lines": ["Blue", "Yellow", "52"], "stops": ["hillsborough-tram", "hillsborough-interchange"], "expected_crowd": 25000},
-    {"id": "ev-lights-switch-on", "name": "Christmas lights switch-on, city centre (demo)", "date": "2026-11-15", "start": "15:00", "end": "20:00", "lines": ["Blue", "Yellow", "Purple", "120", "95", "52"], "stops": ["cathedral-tram", "arundel-gate-stop"], "expected_crowd": 20000},
-    {"id": "ev-arena-concert", "name": "Concert at Sheffield Arena (demo)", "date": "2026-11-16", "start": "18:00", "end": "23:30", "lines": ["Yellow"], "stops": ["meadowhall-tram"], "expected_crowd": 12000}
+    {
+      "id": "ev-hillsborough-football",
+      "name": "Football match at Hillsborough Stadium (demo)",
+      "date": "2026-11-14",
+      "start": "12:30",
+      "end": "17:30",
+      "lines": [
+        "Blue",
+        "Yellow",
+        "52"
+      ],
+      "stops": [
+        "hillsborough-tram",
+        "hillsborough-interchange"
+      ],
+      "expected_crowd": 25000
+    },
+    {
+      "id": "ev-lights-switch-on",
+      "name": "Christmas lights switch-on, city centre (demo)",
+      "date": "2026-11-15",
+      "start": "15:00",
+      "end": "20:00",
+      "lines": [
+        "Blue",
+        "Yellow",
+        "Purple",
+        "120",
+        "95",
+        "52"
+      ],
+      "stops": [
+        "cathedral-tram",
+        "arundel-gate-stop"
+      ],
+      "expected_crowd": 20000
+    },
+    {
+      "id": "ev-arena-concert",
+      "name": "Concert at Sheffield Arena (demo)",
+      "date": "2026-11-16",
+      "start": "18:00",
+      "end": "23:30",
+      "lines": [
+        "Yellow"
+      ],
+      "stops": [
+        "meadowhall-tram"
+      ],
+      "expected_crowd": 12000
+    }
   ],
   "toilets": [
-    {"id": "wc-rhh", "name": "Royal Hallamshire Hospital — accessible toilets near main reception", "type": "accessible", "near_stops": ["glossop-rd-beech-hill", "hospital"], "radar_key": false, "verified": false, "notes": "Check AccessAble for exact location and whether a Changing Places toilet is available."},
-    {"id": "wc-su", "name": "University of Sheffield Students' Union — accessible toilet", "type": "accessible", "near_stops": ["university-tram"], "radar_key": false, "verified": false, "notes": "Public building; opening hours vary."},
-    {"id": "wc-interchange", "name": "Sheffield Interchange — accessible toilet", "type": "accessible", "near_stops": ["arundel-gate-stop", "interchange"], "radar_key": true, "verified": false, "notes": "May need a RADAR key."},
-    {"id": "wc-station", "name": "Sheffield railway station — accessible toilets", "type": "accessible", "near_stops": ["station-tram"], "radar_key": false, "verified": false, "notes": "Staff assistance available at the station."},
-    {"id": "wc-winter-garden", "name": "City centre (Winter Garden area) — accessible toilet", "type": "accessible", "near_stops": ["cathedral-tram"], "radar_key": false, "verified": false, "notes": "Demo entry — verify before use."},
-    {"id": "wc-meadowhall-cp", "name": "Meadowhall — Changing Places toilet", "type": "changing_places", "near_stops": ["meadowhall-tram"], "radar_key": false, "verified": false, "notes": "Demo entry — verify on the Changing Places map."}
+    {
+      "id": "wc-rhh",
+      "name": "Royal Hallamshire Hospital — accessible toilets near main reception",
+      "type": "accessible",
+      "near_stops": [
+        "glossop-rd-beech-hill",
+        "hospital"
+      ],
+      "radar_key": false,
+      "verified": false,
+      "notes": "Check AccessAble for exact location and whether a Changing Places toilet is available."
+    },
+    {
+      "id": "wc-su",
+      "name": "University of Sheffield Students' Union — accessible toilet",
+      "type": "accessible",
+      "near_stops": [
+        "university-tram"
+      ],
+      "radar_key": false,
+      "verified": false,
+      "notes": "Public building; opening hours vary."
+    },
+    {
+      "id": "wc-interchange",
+      "name": "Sheffield Interchange — accessible toilet",
+      "type": "accessible",
+      "near_stops": [
+        "arundel-gate-stop",
+        "interchange"
+      ],
+      "radar_key": true,
+      "verified": false,
+      "notes": "May need a RADAR key."
+    },
+    {
+      "id": "wc-station",
+      "name": "Sheffield railway station — accessible toilets",
+      "type": "accessible",
+      "near_stops": [
+        "station-tram"
+      ],
+      "radar_key": false,
+      "verified": false,
+      "notes": "Staff assistance available at the station."
+    },
+    {
+      "id": "wc-winter-garden",
+      "name": "City centre (Winter Garden area) — accessible toilet",
+      "type": "accessible",
+      "near_stops": [
+        "cathedral-tram"
+      ],
+      "radar_key": false,
+      "verified": false,
+      "notes": "Demo entry — verify before use."
+    },
+    {
+      "id": "wc-meadowhall-cp",
+      "name": "Meadowhall — Changing Places toilet",
+      "type": "changing_places",
+      "near_stops": [
+        "meadowhall-tram"
+      ],
+      "radar_key": false,
+      "verified": false,
+      "notes": "Demo entry — verify on the Changing Places map."
+    }
   ],
   "transport_status": [],
   "scenarios": [
-    {"id": "beech-hill-blocked", "label": "Pavement blocked on Beech Hill Road", "disruptions": [{"type": "pavement_blocked", "target": "beech-hill-road", "description": "Unannounced utility works and pavement parking block the Beech Hill Road footway (width under 0.7 m, no dropped-kerb bypass)."}]},
-    {"id": "bus-95-cancelled", "label": "Bus 95 cancelled", "disruptions": [{"type": "bus_cancelled", "target": "95", "description": "Operator reports the next Bus 95 services are cancelled (driver shortage)."}]},
-    {"id": "tram-suspended", "label": "Trams suspended (Blue & Yellow)", "disruptions": [{"type": "tram_cancelled", "target": "Blue", "description": "Overhead line fault: Blue line suspended."}, {"type": "tram_cancelled", "target": "Yellow", "description": "Overhead line fault: Yellow line suspended."}]},
-    {"id": "tram-delayed", "label": "Tram delays (20 min)", "disruptions": [{"type": "tram_delayed", "target": "Blue", "delay_minutes": 20, "description": "Earlier breakdown: Blue line running 20 minutes late."}, {"type": "tram_delayed", "target": "Yellow", "delay_minutes": 20, "description": "Earlier breakdown: Yellow line running 20 minutes late."}]},
-    {"id": "match-crowds", "label": "Event crowds on trams and buses", "disruptions": [{"type": "event_crowding", "target": "Blue", "description": "Large event: trams very busy; wheelchair spaces likely taken."}, {"type": "event_crowding", "target": "Yellow", "description": "Large event: trams very busy; wheelchair spaces likely taken."}, {"type": "event_crowding", "target": "95", "description": "Large event: buses very busy."}]},
-    {"id": "ice", "label": "Icy pavements", "disruptions": [{"type": "severe_weather", "target": "ice", "description": "Met Office yellow warning: ice on untreated pavements, especially on hills."}]}
+    {
+      "id": "beech-hill-blocked",
+      "label": "Pavement blocked on Beech Hill Road",
+      "disruptions": [
+        {
+          "type": "pavement_blocked",
+          "target": "beech-hill-road",
+          "description": "Unannounced utility works and pavement parking block the Beech Hill Road footway (width under 0.7 m, no dropped-kerb bypass)."
+        }
+      ]
+    },
+    {
+      "id": "bus-95-cancelled",
+      "label": "Bus 95 cancelled",
+      "disruptions": [
+        {
+          "type": "bus_cancelled",
+          "target": "95",
+          "description": "Operator reports the next Bus 95 services are cancelled (driver shortage)."
+        }
+      ]
+    },
+    {
+      "id": "tram-suspended",
+      "label": "Trams suspended (Blue & Yellow)",
+      "disruptions": [
+        {
+          "type": "tram_cancelled",
+          "target": "Blue",
+          "description": "Overhead line fault: Blue line suspended."
+        },
+        {
+          "type": "tram_cancelled",
+          "target": "Yellow",
+          "description": "Overhead line fault: Yellow line suspended."
+        }
+      ]
+    },
+    {
+      "id": "tram-delayed",
+      "label": "Tram delays (20 min)",
+      "disruptions": [
+        {
+          "type": "tram_delayed",
+          "target": "Blue",
+          "delay_minutes": 20,
+          "description": "Earlier breakdown: Blue line running 20 minutes late."
+        },
+        {
+          "type": "tram_delayed",
+          "target": "Yellow",
+          "delay_minutes": 20,
+          "description": "Earlier breakdown: Yellow line running 20 minutes late."
+        }
+      ]
+    },
+    {
+      "id": "match-crowds",
+      "label": "Event crowds on trams and buses",
+      "disruptions": [
+        {
+          "type": "event_crowding",
+          "target": "Blue",
+          "description": "Large event: trams very busy; wheelchair spaces likely taken."
+        },
+        {
+          "type": "event_crowding",
+          "target": "Yellow",
+          "description": "Large event: trams very busy; wheelchair spaces likely taken."
+        },
+        {
+          "type": "event_crowding",
+          "target": "95",
+          "description": "Large event: buses very busy."
+        }
+      ]
+    },
+    {
+      "id": "ice",
+      "label": "Icy pavements",
+      "disruptions": [
+        {
+          "type": "severe_weather",
+          "target": "ice",
+          "description": "Met Office yellow warning: ice on untreated pavements, especially on hills."
+        }
+      ]
+    }
   ]
 }

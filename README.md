@@ -180,6 +180,7 @@ Browser (React, Vite :5173) ──/backend proxy──► FastAPI :8000 ──SS
 | Accounts and profile | Register/sign in, mobility aid, access presets, saved appointment | `profiles.py`, `workspace.py` (SQLite) |
 | Map and location | GPS, address search (OpenStreetMap), wheelchair directions (openrouteservice), QGIS demo layers | `navigation.py`, `src/LiveJourneyMap.jsx`, `src/App.jsx` |
 | Live conditions | Current weather (Open-Meteo), road incidents (Live Roads) | `src/LiveConditions.jsx` |
+| Live guidance + Help | Mock-GPS guidance along the plan with icon cues and voice; Nemotron re-plans mid-journey (blocked pavement, bus late, stuck, running late); Dexi's Help button (999 / hospital / carer, demo mode) with staff alerts | `src/guidance/`, `backend/app/services/guidance.py`, `src/emergency/`, [LIVE_GUIDANCE.md](docs/LIVE_GUIDANCE.md) |
 | Voice input | Speak the appointment details; Whisper on the Spark GPU, then Nemotron extracts the fields | `backend/app/voice.py`, `spark/asr_server.py`, `src/voice/`, [VOICE.md](docs/VOICE.md) |
 | Read aloud | Speech model on the Spark if configured, else the browser's voice | `/api/v1/tts`, `src/tts/speak.js`, [TTS.md](backend/TTS.md) |
 

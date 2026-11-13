@@ -31,7 +31,13 @@ export default function LiveJourneyMap({ location, destination, geometry, onDest
     queueMicrotask(() => setReady(true));
     const resize = new ResizeObserver(() => instance.invalidateSize());
     resize.observe(container.current);
-    return () => { resize.disconnect(); instance.remove(); map.current = null; locationMarker.current = null; accuracyCircle.current = null; destinationMarker.current = null; routeLayer.current = null; roadLayer.current = null; transitLayer.current = null; };
+    return () => {
+      resize.disconnect();
+      // Leaflet finishes zoom animations on a timer; if the map is removed first (e.g. switching tabs
+      // mid-zoom) that timer crashes with "_leaflet_pos". Stop animations and clear the zoom flag so the pending timer does nothing.
+      instance.stop();
+      instance._animatingZoom = false; // the pending zoom-end timer then returns early
+      instance.remove(); map.current = null; locationMarker.current = null; accuracyCircle.current = null; destinationMarker.current = null; routeLayer.current = null; roadLayer.current = null; transitLayer.current = null; };
   }, []);
 
   useEffect(() => {

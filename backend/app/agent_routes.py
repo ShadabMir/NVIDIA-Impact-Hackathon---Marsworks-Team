@@ -11,9 +11,11 @@ from app.agent_schemas import (
     AgentPlanRequest,
     AgentPlanResponse,
     AgentReassessRequest,
+    GuidanceDecision,
+    GuidanceReplanRequest,
 )
 from app.config import get_settings
-from app.services import agent, drafts
+from app.services import agent, drafts, guidance
 from app.services.llm import ModelUnavailable, warmup
 from app.services import sheffield as sh
 
@@ -88,3 +90,10 @@ async def draft(body: AgentDraftRequest):
     # Re-run the rules-only plan to collect barriers quickly; the draft model call is separate.
     plan_result = await agent.plan(body.request.model_copy(update={"use_model": False}), settings)
     return await drafts.draft(body, plan_result, settings)
+
+
+@router.post("/guide/replan", response_model=GuidanceDecision)
+async def guide_replan(body: GuidanceReplanRequest):
+    """Live guidance: something went wrong mid-journey; decide what to do from the current position."""
+    check_origin(body.request)
+    return await guidance.replan(body, get_settings())

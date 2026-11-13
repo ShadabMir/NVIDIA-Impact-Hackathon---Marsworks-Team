@@ -1,4 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { IconNavigation } from "@tabler/icons-react";
+import LiveGuidance from "./guidance/LiveGuidance.jsx";
+import HelpButton from "./emergency/HelpButton.jsx";
+import StaffAlerts from "./emergency/StaffAlerts.jsx";
 import VoiceInput from "./voice/VoiceInput.jsx";
 import { describeDetails } from "./voice/describe.js";
 import { speak } from "./tts/speak.js";
@@ -110,6 +114,11 @@ export default function AccessRouteApp() {
   const routeMeta = useRef({ requestedAt: 0, origin: null });
   const [navigation, setNavigation] = useState(null);
   const [showConditions, setShowConditions] = useState(false);
+  // Live guidance (mock GPS) and Help button context.
+  const [guiding, setGuiding] = useState(false);
+  const [guideInfo, setGuideInfo] = useState(null);
+  const stuckRef = useRef(null);
+  const onGuideProgress = useCallback(info => setGuideInfo(info), []);
   const [supportDraft, setSupportDraft] = useState(null);
   const [reviewed, setReviewed] = useState(false);
   const [roadOverlay, setRoadOverlay] = useState(null);
@@ -495,7 +504,14 @@ export default function AccessRouteApp() {
           <button className="btn btn-outline-secondary btn-accessible w-100" onClick={() => setStep(1)}>Back to appointment</button>
         </div></section>}
 
-        {step === 3 && <div className="portrait-navigation-page">
+        {step === 3 && agentPlan && !guiding && <button type="button" className="lg-start" onClick={() => setGuiding(true)} aria-label="Start live guidance to your appointment">
+          <IconNavigation size={30} aria-hidden="true" /> Guide me
+        </button>}
+        {step === 3 && agentPlan && guiding && <LiveGuidance plan={agentPlan} request={agentRequest}
+          origin={(() => { const area = agentCtx?.origins.find(item => item.id === agentRequest?.origin_id); return area?.lat != null ? [area.lon, area.lat] : [agentCtx?.hospital?.lon ?? -1.4893, agentCtx?.hospital?.lat ?? 53.3786]; })()}
+          goal={agentPlan.entrance?.coordinate || [agentCtx?.hospital?.lon ?? -1.4893, agentCtx?.hospital?.lat ?? 53.3786]}
+          onClose={() => { setGuiding(false); setGuideInfo(null); }} onProgress={onGuideProgress} stuckRef={stuckRef} />}
+        {step === 3 && !guiding && <div className="portrait-navigation-page">
           <JourneyNavigation navigation={navigation} plan={agentPlan} arriveBy={appointmentArriveBy}
             location={location || originPoint || routeOrigin} destination={destination}
             roadOverlay={roadOverlay} tracking={tracking} loading={routingBusy} error={routingError}
@@ -538,10 +554,22 @@ export default function AccessRouteApp() {
           {supportDraft ? <><Field label="Subject"><input className="form-control" value={supportDraft.subject} onChange={e => setSupportDraft(previous => ({ ...previous, subject: e.target.value }))} /></Field><Field label="Message draft"><textarea rows={14} className="form-control" value={supportDraft.body} onChange={e => setSupportDraft(previous => ({ ...previous, body: e.target.value }))} /></Field><button className="btn btn-primary btn-accessible" onClick={() => run(async () => { await navigator.clipboard.writeText(`${supportDraft.subject}\n\n${supportDraft.body}`); setMessage("Draft copied. Choose the recipient and review it before sending."); })}>Copy draft</button></> : <button className="btn btn-outline-primary" onClick={() => setStep(3)}>Go to step 3: simulate a problem, re-plan, and choose a draft</button>}
         </div></section>}
 
-        {step === 5 && <section className="card shadow-sm"><div className="card-body"><span className="badge bg-warning text-dark mb-2">Staff view · local demonstration only</span><h2 className="h4">Travel-support review</h2><p>This preview does not notify hospital staff, dispatch vehicles or send messages.</p>
+        {step === 5 && <StaffAlerts />}
+        {step === 5 && <section className="card shadow-sm mt-3"><div className="card-body"><span className="badge bg-warning text-dark mb-2">Staff view · local demonstration only</span><h2 className="h4">Travel-support review</h2><p>This preview does not notify hospital staff, dispatch vehicles or send messages.</p>
           {supportDraft ? <><h3 className="h5">{profile.first_name || "Demo patient"} · {appointment.department}</h3><p>Status: {reviewed ? "Marked reviewed in this browser" : "Awaiting review in this browser"}</p><pre className="draft-preview">{supportDraft.body}</pre><button className="btn btn-primary btn-accessible" onClick={() => setReviewed(true)} disabled={reviewed}>Mark demo case reviewed</button></> : <p>No draft yet. Complete the journey and support example first.</p>}
         </div></section>}
       </>}
+      <HelpButton
+        context={{
+          patientName: signedIn ? `${profile.first_name} ${profile.last_name}`.trim() : "Guest (demo)",
+          hospital: hospitalName || "Royal Hallamshire Hospital", department: appointment.department,
+          arriveBy: `${appointment.arrival}, ${appointment.date}`,
+          screen: ["", "Appointment", "Access needs", "Plan & map", "Support", "Staff demo"][step] || "",
+          routeStep: guiding ? guideInfo?.step : "", needs: profile.mobility_aid.replaceAll("_", " "),
+          ...(guiding && guideInfo?.location ? { location: guideInfo.location } : {}),
+        }}
+        onReplan={() => { if (guiding && stuckRef.current) stuckRef.current(); else { setStep(3); setGuiding(true); } }}
+      />
       <footer className="py-4 small text-muted">Independent hackathon prototype · not an NHS service. Use synthetic letters and account details. Travel accessibility and assistance availability require confirmation.</footer>
     </div>
   </>;
