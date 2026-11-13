@@ -18,6 +18,7 @@ async function request(path, options = {}) {
 
 export const getContext = () => request("/api/v1/agent/context");
 export const getModelHealth = () => request("/api/v1/agent/health");
+export const warmUpModel = () => request("/api/v1/agent/warmup", { method: "POST" });
 export const planJourney = (req) =>
   request("/api/v1/agent/plan", { method: "POST", body: JSON.stringify(req) });
 export const reassessJourney = (req, disruptions, earliest_departure) =>

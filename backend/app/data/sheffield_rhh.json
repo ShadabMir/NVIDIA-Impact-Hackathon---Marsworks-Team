@@ -18,7 +18,8 @@
     {"id": "hillsborough", "name": "Hillsborough (S6)", "lat": 53.4063, "lon": -1.5011},
     {"id": "city-centre", "name": "Sheffield Interchange (city centre)", "lat": 53.3797, "lon": -1.4645},
     {"id": "sheffield-station", "name": "Sheffield railway station", "lat": 53.3781, "lon": -1.4620},
-    {"id": "meadowhall", "name": "Meadowhall Interchange", "lat": 53.4170, "lon": -1.4127}
+    {"id": "meadowhall", "name": "Meadowhall Interchange", "lat": 53.4170, "lon": -1.4127},
+    {"id": "rotherham", "name": "Rotherham (no route data yet)", "lat": 53.4326, "lon": -1.3635, "no_data": true}
   ],
   "options": [
     {

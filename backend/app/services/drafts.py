@@ -44,7 +44,8 @@ def template(req: AgentDraftRequest, plan: AgentPlanResponse) -> tuple[str, str]
     appt = req.request.appointment
     when = appt.arrive_by.astimezone(sh.LONDON)
     aid = req.request.needs.mobility_aid.replace("_", " ")
-    barriers = "\n".join(f"- {line}" for line in barrier_lines(plan)) or "- (none recorded)"
+    barriers = "\n".join(f"- {line}" for line in barrier_lines(plan)) or \
+        "- No checked step-free public transport route is available from where I live."
     if req.kind == "blocked_pavement_report":
         location = req.location or next((d.description for d in plan.disruptions_applied if d.type == "pavement_blocked"),
                                         "[describe the exact location]")

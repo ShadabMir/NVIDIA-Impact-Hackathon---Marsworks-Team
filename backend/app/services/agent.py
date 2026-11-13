@@ -10,6 +10,7 @@ How it works
    an unsuitable option, or the model server is down, the rules' choice is used instead.
 """
 import json
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Awaitable, Callable
@@ -21,6 +22,7 @@ from app.agent_schemas import (
     AgentPlanRequest,
     AgentPlanResponse,
     AgentStep,
+    ModelStats,
     OptionAssessment,
     Recommendation,
     WeatherOut,
@@ -47,6 +49,7 @@ class Ctx:
     events: list[dict[str, Any]] = field(default_factory=list)
     toilets: list[dict[str, Any]] = field(default_factory=list)
     assessments: list[OptionAssessment] = field(default_factory=list)
+    stats: list[dict[str, float]] = field(default_factory=list)
 
     @property
     def arrive_by(self) -> datetime:
@@ -56,8 +59,10 @@ class Ctx:
 # --------------------------------------------------------------------------- tools
 
 async def t_entrance(ctx: Ctx, args: dict) -> dict:
-    ctx.entrance = sh.choose_entrance(args.get("department") or ctx.req.appointment.department)
-    return {"hospital": sh.hospital()["name"], "entrance": ctx.entrance["name"], "notes": ctx.entrance["notes"]}
+    # Always match on the department the patient confirmed, not the model's paraphrase.
+    ctx.entrance = sh.choose_entrance(ctx.req.appointment.department)
+    return {"hospital": sh.hospital()["name"], "entrance": ctx.entrance["name"],
+            "department_recognised": ctx.entrance["matched"], "notes": ctx.entrance["notes"]}
 
 
 async def t_routes(ctx: Ctx, args: dict) -> dict:
@@ -199,7 +204,7 @@ async def model_loop(ctx: Ctx) -> None:
     ]
     specs = tool_specs()
     for _ in range(MAX_MODEL_TURNS):
-        msg = await chat(ctx.settings, messages, tools=specs, num_predict=400)
+        msg = await chat(ctx.settings, messages, tools=specs, num_predict=400, stats=ctx.stats)
         calls = msg.get("tool_calls") or []
         if not calls:
             return
@@ -232,7 +237,25 @@ async def gather_missing(ctx: Ctx, actor: str) -> None:
     await run_tool(ctx, "assess_routes", {}, "rules")
 
 
+def entrance_warning(ctx: Ctx) -> str | None:
+    if ctx.entrance and not ctx.entrance["matched"]:
+        return f"Not sure which entrance: {ctx.entrance['notes']}"
+    return None
+
+
+def unknown_origin_recommendation(ctx: Ctx) -> Recommendation:
+    name = next((o["name"] for o in sh.origins() if o["id"] == ctx.req.origin_id), ctx.req.origin_id)
+    name = name.split(" (")[0]
+    return Recommendation(option_id=None, generated_by="rules",
+        summary=f"I don't know a safe route from {name} yet: there is no checked route data for this start point.",
+        reasons=["Rather than guess, the agent will not suggest a route it cannot check for slopes, kerbs and closures."],
+        tips=["Ask the hospital about NHS Patient Transport (draft below).",
+              "Travel South Yorkshire can help plan an accessible journey by phone."])
+
+
 def rules_recommendation(ctx: Ctx) -> Recommendation:
+    if not ctx.options:
+        return unknown_origin_recommendation(ctx)
     best = ctx.assessments[0] if ctx.assessments else None
     if not best or best.status == "unsuitable":
         return Recommendation(option_id=None, generated_by="rules",
@@ -248,7 +271,9 @@ def rules_recommendation(ctx: Ctx) -> Recommendation:
     tips = [b.message + (f" {b.mitigation}" if b.mitigation else "") for b in best.barriers if b.severity != "blocking"][:4]
     if ctx.weather and ctx.weather.source != "unavailable":
         tips.append(f"Weather: {ctx.weather.summary}.")
-    if ctx.entrance:
+    if warning := entrance_warning(ctx):
+        tips.insert(0, warning)
+    elif ctx.entrance:
         tips.append(f"Use the {ctx.entrance['name']}.")
     caution = " with care" if best.status == "caution" else ""
     return Recommendation(option_id=best.id, generated_by="rules", reasons=reasons, tips=tips,
@@ -262,6 +287,7 @@ async def model_recommendation(ctx: Ctx) -> Recommendation | None:
     payload = {
         "patient_needs": needs_text(ctx.req),
         "entrance": ctx.entrance["name"] if ctx.entrance else None,
+        "entrance_note": entrance_warning(ctx),
         "weather": ctx.weather.summary if ctx.weather else None,
         "toilets": [t["name"] for t in ctx.toilets][:4],
         "options": [sh.summarise(a) for a in ctx.assessments],
@@ -273,7 +299,7 @@ async def model_recommendation(ctx: Ctx) -> Recommendation | None:
         {"role": "user", "content": json.dumps(payload, default=str) +
             "\nReturn JSON: option_id, summary (one sentence with the leave time), reasons (2-4 short), tips (2-4 short)."},
     ]
-    msg = await chat(ctx.settings, messages, fmt=ModelChoice.model_json_schema(), num_predict=500)
+    msg = await chat(ctx.settings, messages, fmt=ModelChoice.model_json_schema(), num_predict=500, stats=ctx.stats)
     try:
         choice = ModelChoice.model_validate_json(msg.get("content", ""))
     except ValidationError:
@@ -296,7 +322,24 @@ def suggested_actions(ctx: Ctx, support_needed: bool) -> list[dict[str, str]]:
     return actions
 
 
+def model_stats(ctx: Ctx) -> ModelStats | None:
+    if not ctx.stats:
+        return None
+    out = sum(s["output_tokens"] for s in ctx.stats)
+    gen = sum(s["generation_seconds"] for s in ctx.stats)
+    return ModelStats(
+        model=ctx.settings.ollama_agent_model,
+        calls=len(ctx.stats),
+        prompt_tokens=int(sum(s["prompt_tokens"] for s in ctx.stats)),
+        output_tokens=int(out),
+        model_seconds=round(sum(s["wall_seconds"] for s in ctx.stats), 2),
+        tokens_per_second=round(out / gen, 1) if gen > 0 else None,
+        load_seconds=round(sum(s["load_seconds"] for s in ctx.stats), 2),
+    )
+
+
 async def plan(req: AgentPlanRequest, settings: Settings, extra: list[AgentDisruption] | None = None) -> AgentPlanResponse:
+    started = time.perf_counter()
     ctx = Ctx(req=req, settings=settings, disruptions=list(req.disruptions) + list(extra or []))
     mode = "rules_only"
     recommendation = None
@@ -313,6 +356,8 @@ async def plan(req: AgentPlanRequest, settings: Settings, extra: list[AgentDisru
         except ModelUnavailable:
             recommendation = None
     recommendation = recommendation or rules_recommendation(ctx)
+    if (warning := entrance_warning(ctx)) and warning not in recommendation.tips:
+        recommendation.tips.insert(0, warning)
 
     by_id = {a.id: a for a in ctx.assessments}
     chosen = by_id.get(recommendation.option_id) if recommendation.option_id else None
@@ -338,4 +383,6 @@ async def plan(req: AgentPlanRequest, settings: Settings, extra: list[AgentDisru
         agent_mode=mode,
         model=settings.ollama_agent_model if mode == "model_directed" else None,
         agent_steps=ctx.steps,
+        model_stats=model_stats(ctx),
+        elapsed_seconds=round(time.perf_counter() - started, 2),
     )

@@ -186,3 +186,51 @@ def test_open_meteo_parsing_detects_ice(monkeypatch):
     out = asyncio.run(weather.forecast(53.37, -1.48, datetime(2026, 11, 16, 10, 15, tzinfo=timezone.utc)))
     assert out.source == "open-meteo"
     assert out.ice_risk is True and out.temperature_c == 0.5
+
+
+def test_unknown_start_point_says_i_dont_know():
+    plan = client.post("/api/v1/agent/plan", json={**MARGARET, "origin_id": "rotherham"}).json()
+    assert plan["recommendation"]["option_id"] is None
+    assert "don't know" in plan["recommendation"]["summary"]
+    assert plan["support_needed"] is True
+    assert {"hospital_transport_request"} <= {a["kind"] for a in plan["suggested_actions"]}
+
+
+def test_unclear_department_is_flagged_not_guessed():
+    req = {**MARGARET, "appointment": {**MARGARET["appointment"], "department": "Follow-up appointment"}}
+    plan = client.post("/api/v1/agent/plan", json=req).json()
+    assert plan["entrance"]["matched"] is False
+    assert plan["recommendation"]["tips"][0].startswith("Not sure which entrance")
+
+
+def test_model_stats_keep_alive_and_warmup(monkeypatch):
+    sent = []
+
+    def handler(request):
+        payload = json.loads(request.content)
+        sent.append(payload)
+        body = {"message": {"role": "assistant", "content": "ok"}, "prompt_eval_count": 100, "eval_count": 40,
+                "eval_duration": 2_000_000_000, "prompt_eval_duration": 500_000_000, "load_duration": 1_500_000_000}
+        return httpx.Response(200, json=body)
+
+    fake_model(monkeypatch, handler)
+    plan = client.post("/api/v1/agent/plan", json={**MARGARET, "use_model": True}).json()
+    stats = plan["model_stats"]
+    assert stats["calls"] >= 1 and stats["output_tokens"] == 40 * stats["calls"]
+    assert stats["tokens_per_second"] == 20.0
+    assert all(p["keep_alive"] == "30m" for p in sent)
+    w = client.post("/api/v1/agent/warmup").json()
+    assert w["load_seconds"] == 1.5 and w["keep_alive"] == "30m"
+
+
+def test_eval_cases_pass_with_rules():
+    import asyncio
+
+    from app.agent_schemas import AgentPlanRequest
+    from app.services import agent
+    from eval.run_eval import CASES, check
+
+    settings = Settings(live_weather=False)
+    for c in CASES:
+        plan = asyncio.run(agent.plan(AgentPlanRequest.model_validate({**c["request"], "use_model": False}), settings))
+        assert check(plan, c["expect"]) == [], c["name"]

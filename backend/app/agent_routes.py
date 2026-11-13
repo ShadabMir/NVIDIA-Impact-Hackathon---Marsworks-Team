@@ -14,6 +14,7 @@ from app.agent_schemas import (
 )
 from app.config import get_settings
 from app.services import agent, drafts
+from app.services.llm import ModelUnavailable, warmup
 from app.services import sheffield as sh
 
 router = APIRouter(prefix="/api/v1/agent", tags=["Agent (Royal Hallamshire)"])
@@ -39,6 +40,18 @@ async def agent_health():
     if model not in names and f"{model}:latest" not in names:
         raise HTTPException(503, f"{model} is not installed. Installed: {', '.join(sorted(names))}")
     return {"status": "available", "model": model, "ollama_base_url": settings.ollama_base_url}
+
+
+@router.post("/warmup")
+async def agent_warmup():
+    """Load the agent model on the Spark and keep it loaded (OLLAMA_KEEP_ALIVE). Run before a demo."""
+    settings = get_settings()
+    try:
+        stats = await warmup(settings)
+    except ModelUnavailable as exc:
+        raise HTTPException(503, f"Could not reach {settings.ollama_agent_model} at {settings.ollama_base_url}.") from exc
+    return {"model": settings.ollama_agent_model, "keep_alive": settings.ollama_keep_alive,
+            "load_seconds": round(stats["load_seconds"], 2), "total_seconds": round(stats["wall_seconds"], 2)}
 
 
 @router.get("/context")
