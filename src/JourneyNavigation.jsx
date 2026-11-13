@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import LiveJourneyMap from "./LiveJourneyMap";
-import { formatDistance, MODE_STYLE, remainingJourney, transitRecommendations } from "./navigationPresentation";
+import { formatDistance, journeySummary, MODE_STYLE, remainingJourney, transitRecommendations } from "./navigationPresentation";
+import "./journeySummary.css";
 
-export default function JourneyNavigation({ navigation, plan, location, destination, roadOverlay, tracking, loading, error, hospitalName, onDestination, onToggleTracking }) {
+export default function JourneyNavigation({ navigation, plan, arriveBy, location, destination, roadOverlay, tracking, loading, error, hospitalName, onDestination, onToggleTracking }) {
   const [focus, setFocus] = useState(null);
   const [now, setNow] = useState(Date.now);
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(timer); }, []);
@@ -10,7 +11,8 @@ export default function JourneyNavigation({ navigation, plan, location, destinat
   const transit = useMemo(() => transitRecommendations(plan), [plan]);
   const minutes = remaining ? Math.max(1, Math.ceil(remaining.seconds / 60)) : null;
   const arrived = remaining && remaining.distance < 15;
-  const eta = remaining ? new Date(now + remaining.seconds * 1000).toLocaleTimeString("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit" }) : "—";
+  // Times come from the appointment and plan; a live estimate only while tracking on the day (see journeySummary).
+  const summary = journeySummary({ plan, arriveBy, remaining, tracking, now });
 
   return <section className="navigation-shell" aria-label="Navigation">
     <div className="navigation-map-surface">
@@ -31,10 +33,20 @@ export default function JourneyNavigation({ navigation, plan, location, destinat
     <div className="navigation-bottom-sheet">
       <div className="navigation-sheet-handle" />
       <div className="navigation-arrival-summary" aria-live="polite">
-        <strong>{arrived ? "Near destination" : minutes ? `${minutes} min` : "— min"}</strong>
-        <span>{remaining ? formatDistance(remaining.distance) : "—"} left</span>
-        <span>Arrive {eta}</span>
+        {summary.leaveAt ? <strong>Leave {summary.leaveAt}</strong>
+          : summary.arriveBy ? <strong>Arrive by {summary.arriveBy}</strong>
+          : <strong>{arrived ? "Near destination" : minutes ? `${minutes} min` : "— min"}</strong>}
+        {summary.leaveAt && <span>Arrive by {summary.arriveBy}</span>}
+        {summary.day && <span>{summary.day}</span>}
+        {summary.journeyMinutes != null && <span>{summary.journeyMinutes} min journey</span>}
       </div>
+      {summary.live
+        ? <p className={`navigation-live${summary.live.late ? " is-late" : ""}`} aria-live="polite">
+            Live: {arrived ? "near the entrance" : `${minutes} min, ${formatDistance(remaining.distance)} left`} · arrive about {summary.live.eta} · <strong>{summary.live.status}</strong>
+          </p>
+        : remaining && summary.arriveBy && <p className="navigation-live-note">
+            Outdoor stretch: {formatDistance(remaining.distance)}, about {minutes} min. On the day, press Locate for a live arrival estimate.
+          </p>}
       <div className="navigation-next-leg"><span className="mode-symbol" style={{ background: MODE_STYLE.walk.color }}>♿</span><div>
         <small>Outdoor route · estimated</small>
         <strong>{arrived ? "Check your hospital entrance" : `Continue towards ${hospitalName || "the hospital"}`}</strong>

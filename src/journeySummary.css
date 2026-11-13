@@ -1,0 +1,4 @@
+/* Appointment-based arrival summary (JourneyNavigation.jsx) */
+.navigation-live { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: #e8f5ee; color: #0b5a3a; font-size: .9rem; }
+.navigation-live.is-late { background: #fde8e8; color: #8a1c14; }
+.navigation-live-note { margin: 10px 0 0; color: #4c6272; font-size: .85rem; }

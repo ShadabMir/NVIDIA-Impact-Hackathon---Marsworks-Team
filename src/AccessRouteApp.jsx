@@ -255,6 +255,10 @@ export default function AccessRouteApp() {
     if (summary) speak(`I heard: ${summary}. Please check the form, then tick the box to confirm.`).catch(() => {});
   };
 
+  // The appointment's required arrival (UK time) for the map summary; null until date and time are valid.
+  let appointmentArriveBy = null;
+  try { if (appointment.date && appointment.arrival) appointmentArriveBy = londonArrival(appointment.date, appointment.arrival); } catch { appointmentArriveBy = null; }
+
   const buildAgentRequest = () => {
     const needs = profileNeeds(profile);
     const { use_model, ...extras } = agentExtras;
@@ -492,7 +496,7 @@ export default function AccessRouteApp() {
         </div></section>}
 
         {step === 3 && <div className="portrait-navigation-page">
-          <JourneyNavigation navigation={navigation} plan={agentPlan}
+          <JourneyNavigation navigation={navigation} plan={agentPlan} arriveBy={appointmentArriveBy}
             location={location || originPoint || routeOrigin} destination={destination}
             roadOverlay={roadOverlay} tracking={tracking} loading={routingBusy} error={routingError}
             hospitalName={hospitalName.replace(/\s*\(demo\)\s*$/i, "")}

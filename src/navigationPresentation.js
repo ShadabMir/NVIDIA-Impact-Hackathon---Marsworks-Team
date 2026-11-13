@@ -81,3 +81,36 @@ export function transitRecommendations(plan) {
 export function formatDistance(metres) {
   return metres >= 1000 ? `${(metres / 1000).toFixed(1)} km` : `${Math.round(metres / 10) * 10} m`;
 }
+
+const LONDON_TIME = { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit" };
+const LONDON_DAY = { timeZone: "Europe/London", weekday: "short", day: "numeric", month: "short" };
+const validDate = value => { const date = value ? new Date(value) : null; return date && !Number.isNaN(date.getTime()) ? date : null; };
+
+// What the arrival panel shows. Times come from the appointment and the agent's plan, never from "now",
+// except a live estimate while the person is tracking their location during the journey itself.
+export function journeySummary({ plan, arriveBy, remaining, tracking, now = Date.now() }) {
+  const best = plan?.options?.find(option => option.id === plan.recommendation?.option_id) || null;
+  const arrive = validDate(best?.arrive_at || plan?.arrive_by || arriveBy);
+  const leave = validDate(best?.leave_at);
+  const summary = {
+    leaveAt: leave ? leave.toLocaleTimeString("en-GB", LONDON_TIME) : null,
+    arriveBy: arrive ? arrive.toLocaleTimeString("en-GB", LONDON_TIME) : null,
+    day: arrive ? arrive.toLocaleDateString("en-GB", LONDON_DAY) : null,
+    journeyMinutes: best?.total_minutes ?? null,
+    live: null,
+  };
+  // Live estimate only when tracking, during the journey window (from 2 h before leaving to 1 h after arrive-by).
+  if (tracking && remaining && arrive) {
+    const windowStart = (leave || arrive).getTime() - 2 * 3600000;
+    if (now >= windowStart && now <= arrive.getTime() + 3600000) {
+      const eta = new Date(now + remaining.seconds * 1000);
+      const spare = Math.round((arrive.getTime() - eta.getTime()) / 60000);
+      summary.live = {
+        eta: eta.toLocaleTimeString("en-GB", LONDON_TIME),
+        status: spare >= 0 ? `${spare} min to spare` : `about ${-spare} min late`,
+        late: spare < 0,
+      };
+    }
+  }
+  return summary;
+}
