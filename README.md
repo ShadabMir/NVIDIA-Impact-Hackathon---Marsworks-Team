@@ -49,50 +49,8 @@ npm run dev
 | Open in a browser | What you should see |
 | --- | --- |
 | http://localhost:8000/health | `{"status":"ok", ...}` |
-| http://localhost:8000/api/v1/agent/health | `"status":"available"` if Nemotron is reachable through the tunnel |
 | http://localhost:8000/docs | Interactive API docs for every route |
-| http://localhost:5173/agent.html | **AccessRoute agent**: Margaret's journey to the Royal Hallamshire |
 | http://localhost:5173/ | Appointment upload, saved profiles, settings and live GPS map |
-
-**Demo flow on `agent.html`:**
-
-1. Click **Plan my journey**. Bus 95 should be recommended.
-2. Open **What the agent did** to see Nemotron's tool calls.
-3. Select **Pavement blocked on Beech Hill Road**, then click **Re-plan with these problems**.
-4. Click **Draft a blocked-pavement report**.
-
-The header badge says whether the local AI is in use. If it says "not reachable", the safety rules
-still plan the journey. Check window 1 and `OLLAMA_BASE_URL`.
-
-**Optional API check from PowerShell**, with the backend running:
-
-```powershell
-$body = @{ origin_id = "walkley"; appointment = @{ department = "Neuro-Rehabilitation Outpatients"; arrive_by = "2026-11-16T10:15:00+00:00"; confirmed_by_user = $true }; needs = @{ mobility_aid = "powered_wheelchair" }; use_model = $true } | ConvertTo-Json -Depth 5
-(Invoke-RestMethod -Uri "http://localhost:8000/api/v1/agent/plan" -Method Post -ContentType "application/json" -Body $body).recommendation
-```
-
-**Before a demo: warm up the model** so the first plan is fast. Click **Warm up AI** on
-`agent.html`, or:
-
-```powershell
-Invoke-RestMethod -Method Post http://localhost:8000/api/v1/agent/warmup
-```
-
-**Run the evaluation** (8 cases with known answers, including an ambiguous input and two
-"I don't know" cases). Run from `backend` with the venv active and the tunnel open. You don't
-need uvicorn running for this.
-
-```powershell
-python -m eval.run_eval
-python -m eval.run_eval --model nemotron-3.5-lightning:30b
-python -m eval.run_eval --rules-only
-```
-
-It prints PASS/FAIL, time, tool calls and tokens per case, and writes `backend/eval/results.md`.
-Paste that table into the submission and show it in the demo video. To compare models, run it
-once per model.
-
-See [AGENT.md](AGENT.md) for how the agent works, the demo script and data sources.
 
 ## What is implemented
 
@@ -106,9 +64,9 @@ See [AGENT.md](AGENT.md) for how the agent works, the demo script and data sourc
 - Disruption reassessment and a template travel-support draft; nothing is sent.
 - Three clearly labelled fictional route fixtures for frontend development.
 
-**Merged application:** `/` provides appointment upload, profiles, settings, live GPS and optional outdoor directions; `/agent.html` provides the Royal Hallamshire model-directed agent demonstration. Both are built by `npm run build` and use the same `/backend` Vite proxy. The frontend pages link to one another and load the same signed-in account. The agent can apply saved profile preferences. Hospital-specific appointment forms remain separate and can each be explicitly saved or removed.
+**Merged application:** `/` provides appointment upload, profiles, settings, live GPS and optional outdoor directions. It is built by `npm run build` and uses the `/backend` Vite proxy. The appointment form can be explicitly saved or removed.
 
-**Current boundary:** appointment-journey routes, times, gradients and access flags are simulated, not real travel advice. The original journey routes support `demo-home` / `northern-general-demo`; the agent routes use the Royal Hallamshire fixtures. Live weather is optional, live outdoor wheelchair directions require an ORS key, and no live bus feed is connected. The agent can use model-directed tool calling when Spark is configured; rules-only fallback is explicitly labelled. The browser-only staff preview does not send requests or dispatch transport. Real Spark inference still needs deployment verification.
+**Current boundary:** appointment-journey routes, times, gradients and access flags are simulated, not real travel advice. The original journey routes support `demo-home` / `northern-general-demo`. Live weather is optional, live outdoor wheelchair directions require an ORS key, and no live bus feed is connected. The browser-only staff preview does not send requests or dispatch transport. Real Spark inference still needs deployment verification.
 
 ## Start the backend
 
@@ -258,7 +216,7 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ## Saved UI data
 
-Sign in to use database-backed forms. On the appointment page, use **Save appointment to my account**; on the agent page, use **Save this form**. Each form restores after refresh/sign-in, and can be removed independently. Profile settings include an optional usual starting address. The agent can explicitly apply saved distance, slope and step-free preferences; the two hospital scenarios remain separate.
+Sign in to use database-backed forms. On the appointment page, use **Save appointment to my account**. The form restores after refresh/sign-in, and can be removed. Profile settings include an optional usual starting address.
 
 The additive SQLite migration creates `user_workspace` without deleting users, sessions or password hashes. Existing profiles receive an empty optional starting address until edited. Tables are initialized automatically; no database reset is required. Raw appointment images, live GPS traces, calculated routes and transient road incidents are not saved. Restart the backend to load the new endpoints.
 

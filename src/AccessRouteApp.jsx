@@ -245,7 +245,6 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
       </div>
     </header>
     <div className="app-container-wide px-3">
-      <p className="small"><a href="/agent.html">Open the Royal Hallamshire agent demonstration →</a> · Save profile preferences to load them there. Appointment forms use separate hospital scenarios.</p>
       <nav className="account-nav" aria-label="Main navigation">{[["journey", "Your journey"], ["profile", "Profile"], ["settings", "Settings"], ["auth", signedIn ? "Account" : "Sign in / Register"]].map(([id, label]) => <button key={id} type="button" className={`btn ${page === id ? "btn-primary" : "btn-outline-primary"}`} aria-current={page === id ? "page" : undefined} onClick={() => openPage(id)}>{label}</button>)}</nav>
       {error && <div className="alert alert-danger" role="alert">{error}</div>}
       {message && <div className="alert alert-success" role="status">{message}</div>}

@@ -6,10 +6,6 @@ All successful responses below return HTTP 200. POST/PUT requests use `applicati
 
 Interactive schema: `/docs`. Machine-readable schema: `/openapi.json`.
 
-## Royal Hallamshire agent routes (merged branch)
-
-The separate `/agent.html` page uses `/api/v1/agent/health`, `/context`, `/plan`, `/reassess` and `/draft` under the `/api/v1/agent` prefix. See [AGENT.md](../AGENT.md) and `/docs` for the different request/response schemas. The agent uses Royal Hallamshire fixtures rather than the original Northern General journey schema. This merge preserves both interfaces without silently treating their preferences or hospital IDs as interchangeable.
-
 ## 1. Connection indicator — GET /health
 
 Call on app startup or from a connection-check button. No body.
@@ -189,11 +185,11 @@ Profile also accepts `default_starting_address` (optional string, up to 500 char
 - `GET /api/v1/workspace`: signed-in user's `{appointment, agent_request, updated_at}`. Missing forms are null.
 - `PATCH /api/v1/workspace`: update either form without replacing the other. Send a field as null to delete it. Requires the account cookie and a trusted Origin.
 - `appointment` matches the main frontend form: `{hospital_id, department, date, arrival, origin}`. `date` is YYYY-MM-DD; `arrival` is HH:MM in hospital UK time. Only the current demo hospital ID is accepted.
-- `agent_request` uses the existing `AgentPlanRequest` schema: appointment, needs, origin ID, optional earliest departure and model toggle. Save does not call the model or run route planning.
+- `agent_request` is optional free-form JSON, stored as-is (kept for compatibility; the agent page that used it is not on this branch).
 - Raw uploaded letters, GPS traces, route results and transient road incidents are not accepted as saved workspace fields.
 - Both reads and writes return `Cache-Control: no-store`. Guests can plan but cannot save forms. Saved appointments must be reconfirmed after loading.
 
-The main appointment screen and agent form have explicit save/remove controls. The agent can load the signed-in profile's distance, slope and step-free settings. It combines transfer and boarding buffers into its own single extra-time field; users should review that translation. The hospital-specific appointment forms remain separate, and neither is silently converted into an appointment at another hospital.
+The main appointment screen has explicit save/remove controls. Saved appointments are not silently converted into an appointment at another hospital.
 
 Account errors: 401 invalid/expired session or invalid credentials; 403 untrusted Origin for account mutations; 409 duplicate email; 422 invalid profile/password. No password is included in a successful response. Password recovery and verification emails are not implemented.
 

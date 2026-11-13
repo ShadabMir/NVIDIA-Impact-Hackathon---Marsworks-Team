@@ -17,11 +17,6 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     ors_api_key: str = ""
     ors_base_url: str = "https://api.openrouteservice.org"
-    # Text model for the Royal Hallamshire agent (tool calling). Separate from the vision model above.
-    ollama_agent_model: str = "nemotron-3-nano:30b"
-    live_weather: bool = True
-    # Keep the model loaded between agent calls (Ollama keep_alive). "0" unloads after every call.
-    ollama_keep_alive: str = "30m"
 
     @property
     def allowed_origins(self) -> list[str]:

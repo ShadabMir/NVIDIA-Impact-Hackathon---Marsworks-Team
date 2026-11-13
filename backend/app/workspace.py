@@ -1,12 +1,11 @@
 """Per-account editable forms. Raw letters, routes and GPS traces are not retained."""
 import json
 from datetime import date as CalendarDate, datetime, timezone
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Response
 from pydantic import AwareDatetime, Field
 
-from app.agent_schemas import AgentPlanRequest
 from app.profiles import check_origin, current_user, database
 from app.schemas import StrictModel
 
@@ -23,7 +22,7 @@ class AppointmentForm(StrictModel):
 
 class WorkspaceUpdate(StrictModel):
     appointment: AppointmentForm | None = None
-    agent_request: AgentPlanRequest | None = None
+    agent_request: dict[str, Any] | None = None  # saved form JSON, stored as-is
 
 
 class WorkspaceResponse(WorkspaceUpdate):
@@ -69,7 +68,7 @@ def save_workspace(payload: WorkspaceUpdate, response: Response, user=Depends(cu
                 "ON CONFLICT(user_id) DO UPDATE SET appointment=excluded.appointment, "
                 "agent_request=excluded.agent_request, updated_at=excluded.updated_at",
                 (user["id"], updated.appointment.model_dump_json() if updated.appointment else None,
-                 updated.agent_request.model_dump_json() if updated.agent_request else None,
+                 json.dumps(updated.agent_request) if updated.agent_request else None,
                  updated.updated_at.isoformat()),
             )
         return updated
