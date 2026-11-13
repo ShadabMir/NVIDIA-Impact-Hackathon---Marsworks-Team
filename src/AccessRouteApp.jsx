@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { api, getPosition, londonArrival, MOBILITY_OPTIONS, presetFor } from "./api";
-import LiveJourneyMap from "./LiveJourneyMap";
+import JourneyNavigation from "./JourneyNavigation";
 import LiveConditions from "./LiveConditions";
+import { loadAppointmentNavigation } from "./appointmentNavigation";
+import { shouldUpdateRoute } from "./navigationPresentation";
 
 const emptyProfile = () => ({ first_name: "", last_name: "", email: "", default_hospital_id: "northern-general-demo", default_starting_address: "", mobility_aid: "manual_wheelchair", access: presetFor("manual_wheelchair") });
 const initialAppointment = () => ({ hospital_id: "northern-general-demo", department: "Demo outpatient department", date: "2026-11-20", arrival: "10:00", origin: "" });
@@ -70,9 +72,15 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const [searchResults, setSearchResults] = useState([]);
   const [searchKind, setSearchKind] = useState("destination");
   const [destination, setDestination] = useState(null);
+  const [destinationOverride, setDestinationOverride] = useState(null);
+  const [routeOrigin, setRouteOrigin] = useState(null);
+  const [routingBusy, setRoutingBusy] = useState(false);
+  const [routingError, setRoutingError] = useState("");
+  const routeController = useRef(null);
+  const routeRequest = useRef(0);
+  const routeMeta = useRef({ requestedAt: 0, origin: null });
   const [navigation, setNavigation] = useState(null);
-  const [navigationIndex, setNavigationIndex] = useState(0);
-  const [focus, setFocus] = useState(null);
+  const [showConditions, setShowConditions] = useState(false);
   const [plan, setPlan] = useState(null);
   const [journeyPayload, setJourneyPayload] = useState(null);
   const [supportDraft, setSupportDraft] = useState(null);
@@ -98,7 +106,10 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
     return () => { active = false; };
   }, []);
 
-  useEffect(() => () => { if (watchId.current !== null) navigator.geolocation?.clearWatch(watchId.current); }, []);
+  useEffect(() => () => {
+    if (watchId.current !== null) navigator.geolocation?.clearWatch(watchId.current);
+    routeController.current?.abort(); routeRequest.current += 1;
+  }, []);
 
   const run = async task => {
     setBusy(true); setError(""); setMessage("");
@@ -109,9 +120,17 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const changeAppointment = (key, value) => {
     setAppointment(previous => ({ ...previous, [key]: value })); setConfirmed(false);
     setPlan(null); setJourneyPayload(null); setSupportDraft(null);
-    if (key === "origin") { setOriginPoint(null); setNavigation(null); }
+    if (key === "origin" || key === "hospital_id") {
+      routeController.current?.abort(); routeRequest.current += 1;
+      setNavigation(null); setRoutingError(""); setRoutingBusy(false); setRouteOrigin(null);
+    }
+    if (key === "origin") setOriginPoint(null);
+    if (key === "hospital_id") { setDestination(null); setDestinationOverride(null); }
   };
-  const changeDestination = point => { setDestination(point); setNavigation(null); setNavigationIndex(0); };
+  const changeDestination = point => {
+    const chosen = { ...point, hospital_id: appointment.hospital_id };
+    setDestinationOverride(chosen); setDestination(chosen); setNavigation(null);
+  };
   const changeProfileField = (key, value) => setProfile(previous => ({ ...previous, [key]: value }));
   const updateAccess = (key, value) => setProfile(previous => ({ ...previous, access: { ...previous.access, [key]: value } }));
 
@@ -128,7 +147,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
   const toggleTracking = () => {
     if (tracking) {
       navigator.geolocation.clearWatch(watchId.current); watchId.current = null;
-      setTracking(false); setLocationMessage("Location tracking stopped; the marker shows your last known position."); return;
+      setTracking(false); setLocationMessage(""); return;
     }
     if (!window.isSecureContext || !navigator.geolocation) {
       setError("Live location needs HTTPS or localhost and location permission. You can choose a map point instead."); return;
@@ -189,22 +208,65 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
 
   const search = kind => run(async () => {
     setSearchKind(kind);
-    const query = kind === "origin" ? appointment.origin : destinationQuery;
+    const query = kind === "origin" ? appointment.origin : destinationQuery || `${hospitalName.replace(/\s*\(demo\)\s*$/i, "")}, Sheffield`;
     if (query.trim().length < 3) throw new Error("Enter an address or place name first.");
     const results = await api(`/api/v1/locations/search?q=${encodeURIComponent(query)}`);
     setSearchResults(results);
     if (!results.length) throw new Error("No matching location found. Try a more complete address or use the map.");
   });
 
-  const getDirections = () => run(async () => {
-    const start = tracking ? location : originPoint;
-    if (!start || !destination) throw new Error("Choose a starting point and destination first.");
-    const result = await api("/api/v1/navigation/route", { method: "POST", body: JSON.stringify({
-      origin: { latitude: start.latitude, longitude: start.longitude },
-      destination: { latitude: destination.latitude, longitude: destination.longitude }, access: profile.access,
-    }) });
-    setNavigation(result); setNavigationIndex(0);
-  });
+  const getDirections = async () => {
+    routeController.current?.abort();
+    const controller = new AbortController(); routeController.current = controller;
+    const id = ++routeRequest.current;
+    routeMeta.current.requestedAt = Date.now();
+    setRoutingBusy(true); setRoutingError("");
+    try {
+      const result = await loadAppointmentNavigation({
+        appointment, hospitals, originPoint, liveLocation: tracking ? location : null,
+        destinationOverride, access: profile.access, request: api, signal: controller.signal,
+      });
+      if (controller.signal.aborted || id !== routeRequest.current) return;
+      setDestination(result.destination); setRouteOrigin(result.origin);
+      routeMeta.current.origin = result.origin;
+      setNavigation(result.navigation);
+    } catch (failure) {
+      if (!controller.signal.aborted && id === routeRequest.current) { setRoutingError(failure.message); setNavigation(null); }
+    } finally {
+      if (id === routeRequest.current) setRoutingBusy(false);
+    }
+  };
+
+  // Replan when appointment/preferences change; GPS movement is handled separately
+  // with distance, accuracy and request-rate checks.
+  const hospitalName = hospitals.find(item => item.id === appointment.hospital_id)?.name || "";
+  const navigationInputs = JSON.stringify({ hospital: appointment.hospital_id, hospitalName,
+    origin: appointment.origin, originPoint, destinationOverride, access: profile.access,
+    hasLiveLocation: tracking && Boolean(location) });
+  const routeAction = useRef(null);
+  useEffect(() => { routeAction.current = getDirections; });
+  useEffect(() => {
+    if (page !== "journey" || step !== 3) return;
+    let active = true;
+    Promise.resolve().then(() => { if (active) void routeAction.current(); });
+    return () => { active = false; routeController.current?.abort(); routeRequest.current += 1; };
+    // navigationInputs captures stable routing requirements, not every GPS fix.
+  }, [page, step, navigationInputs]);
+
+  useEffect(() => {
+    if (page !== "journey" || step !== 3 || !tracking) return;
+    if (shouldUpdateRoute({ location, navigation, lastOrigin: routeMeta.current.origin,
+      requestedAt: routeMeta.current.requestedAt, busy: routingBusy })) {
+      Promise.resolve().then(() => void routeAction.current());
+    }
+  }, [page, step, tracking, location, navigation, routingBusy]);
+
+  useEffect(() => {
+    if (page !== "journey" || step !== 3) return;
+    const resume = () => { if (Date.now() - routeMeta.current.requestedAt >= 30000) void routeAction.current(); };
+    window.addEventListener("online", resume);
+    return () => window.removeEventListener("online", resume);
+  }, [page, step]);
 
   const saveProfile = () => run(async () => {
     if (!signedIn) { setMessage("Your preferences apply to this visit. Sign in or create an account to save them."); return; }
@@ -232,6 +294,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
       setProfile(result); setSignedIn(true); setPassword(""); setPage("profile");
       const saved = await api("/api/v1/workspace");
       setAppointment(saved.appointment || { ...initialAppointment(), hospital_id: result.default_hospital_id, origin: result.default_starting_address || "" });
+      setOriginPoint(null); setRouteOrigin(null); setDestination(null); setDestinationOverride(null); setNavigation(null);
       setConfirmed(false); setPlan(null); setJourneyPayload(null); setSupportDraft(null);
       setMessage(authMode === "register" ? "Account created. Your preferences are saved." : "You are signed in.");
     });
@@ -244,7 +307,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
         <span className="spark-badge">API: {health ? "Online" : "Connecting"} · Model: {model}</span>
       </div>
     </header>
-    <div className="app-container-wide px-3">
+    <div className={`app-container-wide px-3 ${page === "journey" && step === 3 ? "navigation-page" : ""}`}>
       <p className="small"><a href="/agent.html">Open the Royal Hallamshire agent demonstration →</a> · Save profile preferences to load them there. Appointment forms use separate hospital scenarios.</p>
       <nav className="account-nav" aria-label="Main navigation">{[["journey", "Your journey"], ["profile", "Profile"], ["settings", "Settings"], ["auth", signedIn ? "Account" : "Sign in / Register"]].map(([id, label]) => <button key={id} type="button" className={`btn ${page === id ? "btn-primary" : "btn-outline-primary"}`} aria-current={page === id ? "page" : undefined} onClick={() => openPage(id)}>{label}</button>)}</nav>
       {error && <div className="alert alert-danger" role="alert">{error}</div>}
@@ -255,6 +318,7 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
         {signedIn ? <><h2 className="h4">You are signed in</h2><p>{profile.first_name} {profile.last_name} · {profile.email}</p><button className="btn btn-outline-danger btn-accessible" disabled={busy} onClick={() => run(async () => {
           await api("/api/v1/auth/logout", { method: "POST" }); setSignedIn(false); setProfile(emptyProfile()); setPassword(""); setPlan(null); setJourneyPayload(null); setSupportDraft(null);
           setAppointment(initialAppointment()); setConfirmed(false); setFilename(""); setExtractionWarnings([]); setNavigation(null); setLocation(null); setOriginPoint(null); setDestination(null);
+          setDestinationOverride(null); setRouteOrigin(null);
           if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
           watchId.current = null; setTracking(false); setLocationMessage("");
           setMessage("Signed out. Saved preferences and appointments remain in your account.");
@@ -329,38 +393,44 @@ export default function AccessRouteApp({ AdvancedMap, demoGeoJson }) {
           <button className="btn btn-outline-secondary btn-accessible w-100" onClick={() => setStep(1)}>Back to appointment</button>
         </div></section>}
 
-        {step === 3 && <div className="d-flex flex-column gap-3">
-          <section className="card shadow-sm"><div className="card-body"><h2 className="h4">Map and outdoor directions</h2>
-            <p>Your blue marker moves as your device reports a new location. Directions are requested separately; they do not automatically replan.</p>
-            <button className="btn btn-primary btn-accessible mb-2" onClick={toggleTracking}>{tracking ? "Stop live location" : "Start live location"}</button>
-            {locationMessage && <p role="status" className="small">{locationMessage}</p>}
-            <p className="small text-muted">GPS tracking stays in this browser. Map tiles use OpenStreetMap. Route and address requests send coordinates or the entered address to the named provider.</p>
-            <LiveJourneyMap location={location || originPoint} destination={destination} geometry={navigation?.geometry} onDestination={changeDestination} focus={focus} roadOverlay={roadOverlay} />
-            <div className="mt-3"><p className="small">Starting address: {appointment.origin || "Not chosen"}</p><button className="btn btn-outline-primary" disabled={busy} onClick={() => search("origin")}>Find starting address on map</button></div>
-            <Field label="Destination address or hospital entrance"><input className="form-control form-control-lg-accessible" placeholder="Search, or tap an entrance on the map" value={destinationQuery} onChange={e => setDestinationQuery(e.target.value)} /></Field>
-            <button className="btn btn-outline-primary mb-2" disabled={busy} onClick={() => search("destination")}>Find destination</button>
+        {step === 3 && <div className="portrait-navigation-page">
+          <JourneyNavigation navigation={navigation} plan={plan}
+            location={location || originPoint || routeOrigin} destination={destination}
+            roadOverlay={roadOverlay} tracking={tracking} loading={routingBusy} error={routingError}
+            hospitalName={hospitalName.replace(/\s*\(demo\)\s*$/i, "")}
+            onDestination={changeDestination} onToggleTracking={toggleTracking} />
+
+          <div className="navigation-secondary-actions">
+            <button className="btn btn-outline-primary" aria-expanded={showConditions} onClick={() => setShowConditions(previous => !previous)}>{showConditions ? "Hide conditions" : "Weather & roads"}</button>
+            <button className="btn btn-outline-secondary" onClick={() => setStep(1)}>Appointment</button>
+          </div>
+          {showConditions && <LiveConditions onRoadsGeoJson={setRoadOverlay} />}
+
+          <details className="card p-3 mt-3"><summary>Adjust starting point or entrance</summary>
+            <p className="small mt-2">From: {appointment.origin || "Current location"}</p>
+            <p className="small">To: {destination?.label || hospitalName}. Confirm the exact hospital entrance.</p>
+            <button className="btn btn-outline-primary mb-2" disabled={busy || routingBusy} onClick={() => search("origin")}>Check starting point</button>
+            <Field label="Alternative entrance or address"><input className="form-control form-control-lg-accessible" placeholder={hospitalName || "Hospital entrance"} value={destinationQuery} onChange={e => setDestinationQuery(e.target.value)} /></Field>
+            <button className="btn btn-outline-primary mb-2" disabled={busy || routingBusy} onClick={() => search("destination")}>Find entrance</button>
+            {destinationOverride && <button className="btn btn-link" onClick={() => { setDestinationOverride(null); setNavigation(null); }}>Use appointment hospital</button>}
             {searchResults.length > 0 && <ul className="list-unstyled">{searchResults.map((item, index) => <li key={index}><button className="btn btn-light border text-start w-100 my-1" onClick={() => {
               if (searchKind === "origin") {
                 if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
-                watchId.current = null; setTracking(false); setLocationMessage("Using the selected starting address.");
+                watchId.current = null; setTracking(false); setLocationMessage("");
                 setOriginPoint(item); setLocation(null); setNavigation(null); setAppointment(previous => ({ ...previous, origin: item.label }));
-              }
-              else changeDestination(item);
+              } else changeDestination(item);
               setSearchResults([]);
             }}>{item.label}</button></li>)}</ul>}
-            {destination && <p className="small">Destination: {destination.label}. <strong>Confirm the exact entrance; search results may be a building centre.</strong></p>}
-            <button className="btn btn-primary btn-accessible w-100" disabled={busy || !destination} onClick={getDirections}>Get / refresh wheelchair directions</button>
-            {!health?.live_navigation_configured && <p className="small text-muted mt-2">GPS is available independently. Directions require an openrouteservice key configured on the backend.</p>}
-            {navigation && <div className="mt-3"><p className="alert alert-info small">{navigation.notice} Provider slope limit applied: {navigation.applied_max_gradient_percent}% (rounded down where necessary).</p><p><strong>{Math.round(navigation.distance_m)} m</strong> · approximately {Math.ceil(navigation.duration_seconds / 60)} minutes · {navigation.provider}</p>
-              {navigation.warnings.map((warning, index) => <p className="alert alert-warning" key={index}>{warning}</p>)}
-              {navigation.provider_warnings?.length > 0 && <p className="alert alert-warning">The routing provider returned additional warnings: {navigation.provider_warnings.map(item => typeof item === "string" ? item : item.message || JSON.stringify(item)).join("; ")}</p>}
-              <ol className="navigation-steps">{navigation.steps.map((item, index) => <li key={index}><button className={`step-instruction ${index === navigationIndex ? "current-instruction" : ""}`} onClick={() => { setNavigationIndex(index); setFocus(item.coordinate); }} aria-current={index === navigationIndex ? "step" : undefined}>{item.instruction}<small>{Math.round(item.distance_m)} m</small></button></li>)}</ol>
-              <button className="btn btn-outline-primary" disabled={navigationIndex >= navigation.steps.length - 1} onClick={() => { const next = navigationIndex + 1; setNavigationIndex(next); setFocus(navigation.steps[next]?.coordinate); }}>Mark current step complete</button>
-            </div>}
-          </div></section>
-          <LiveConditions onRoadsGeoJson={setRoadOverlay} />
-          <section><h2 className="h4">Appointment journey prototype</h2><RouteResults result={plan} />{plan && <button className="btn btn-outline-danger btn-accessible w-100" disabled={busy} onClick={replan}>Simulate direct-route disruption →</button>}</section>
-          <details className="card p-3"><summary>Advanced: inspect demonstration GeoJSON layers</summary><p className="alert alert-warning small mt-2">These hand-authored Royal Hallamshire overlays are separate fictional examples, not a computed route or verified LiDAR/access survey. They do not follow your live position.</p><AdvancedMap geojsonData={geoJson} onImportGeoJson={setGeoJson} focusTarget={null} showDisruption={false} /></details>
+          </details>
+
+          <details className="card p-3 mt-3"><summary>Journey alternatives & support</summary>
+            <RouteResults result={plan} />
+            {plan && <button className="btn btn-outline-danger btn-accessible w-100" disabled={busy} onClick={replan}>Simulate transport disruption →</button>}
+          </details>
+          <details className="card p-3 mt-3"><summary>Advanced demonstration layers</summary>
+            <p className="alert alert-warning small mt-2">Fictional reference layers, not the current route.</p>
+            <AdvancedMap geojsonData={geoJson} onImportGeoJson={setGeoJson} focusTarget={null} showDisruption={false} />
+          </details>
         </div>}
 
         {step === 4 && <section className="card shadow-sm"><div className="card-body"><h2 className="h4">Travel support</h2><p>Review the simulated disruption and prepare a message. No request is sent from this prototype.</p>

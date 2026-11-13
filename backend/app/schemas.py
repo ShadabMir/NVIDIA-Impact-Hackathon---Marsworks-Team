@@ -49,11 +49,37 @@ class JourneyRequest(StrictModel):
     access: AccessRequirements = Field(default_factory=AccessRequirements)
 
 
+class RouteGeometry(StrictModel):
+    type: Literal["LineString"]
+    coordinates: list[tuple[float, float]] = Field(min_length=2)
+
+    @model_validator(mode="after")
+    def valid_coordinates(self):
+        if any(not (-180 <= lon <= 180 and -90 <= lat <= 90) for lon, lat in self.coordinates):
+            raise ValueError("Route coordinates must be longitude/latitude in WGS84")
+        return self
+
+
+class MapStop(StrictModel):
+    name: str = Field(max_length=200)
+    coordinate: tuple[float, float]
+
+    @model_validator(mode="after")
+    def valid_coordinate(self):
+        lon, lat = self.coordinate
+        if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+            raise ValueError("Stop coordinates must be longitude/latitude in WGS84")
+        return self
+
+
 class JourneyLeg(StrictModel):
-    mode: Literal["walk", "bus", "transfer"]
+    mode: Literal["walk", "roll", "bus", "tram", "taxi", "transfer"]
     instruction: str
     duration_minutes: int = Field(ge=0)
     walking_distance_m: int = Field(default=0, ge=0)
+    line: str | None = None
+    geometry: RouteGeometry | None = None
+    map_stops: list[MapStop] = Field(default_factory=list)
 
 
 class RouteOption(StrictModel):

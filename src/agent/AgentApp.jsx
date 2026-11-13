@@ -124,11 +124,9 @@ export default function AgentApp() {
   const [error, setError] = useState("");
   const [activeScenarios, setActiveScenarios] = useState([]);
   const [draft, setDraft] = useState(null);
-<<<<<<< HEAD
   const [accountProfile, setAccountProfile] = useState(null);
   const [savedMessage, setSavedMessage] = useState("");
   const [restoring, setRestoring] = useState(true);
-=======
   const [warm, setWarm] = useState("");
 
   const onWarmUp = async () => {
@@ -141,7 +139,6 @@ export default function AgentApp() {
       setWarm(e.message);
     }
   };
->>>>>>> a831852e2120cc8d634e35eb8521a19eee4f9613
 
   useEffect(() => {
     let active = true;

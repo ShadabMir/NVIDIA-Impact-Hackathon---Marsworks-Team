@@ -79,6 +79,23 @@ def test_provider_incline_is_rounded_down_not_up():
     assert route_options(AccessRequirements(max_gradient_percent=5))[0] == 3
 
 
+@pytest.mark.parametrize("upstream_status,code,expected", [(404, 2009, 422), (404, 2010, 422), (403, None, 503)])
+def test_no_route_and_invalid_provider_key_are_reported_clearly(client, monkeypatch, upstream_status, code, expected):
+    import httpx
+    import app.navigation as navigation_module
+
+    monkeypatch.setattr(get_settings(), "ors_api_key", "test-key")
+    real_client = httpx.AsyncClient
+    transport = httpx.MockTransport(lambda request: httpx.Response(upstream_status, json={"error": {"code": code}}))
+    monkeypatch.setattr(navigation_module.httpx, "AsyncClient", lambda **kwargs: real_client(transport=transport, **kwargs))
+    response = client.post("/api/v1/navigation/route", json={
+        "origin": {"latitude": 53.39, "longitude": -1.49},
+        "destination": {"latitude": 53.4, "longitude": -1.48}, "access": {},
+    })
+    assert response.status_code == expected
+    assert "test-key" not in response.text
+
+
 def test_navigation_provider_contract_and_distance_warnings(client, monkeypatch):
     import httpx
     import app.navigation as navigation_module

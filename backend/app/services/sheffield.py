@@ -259,7 +259,7 @@ def assess_option(
     status = "unsuitable" if "blocking" in severities else "caution" if "warning" in severities else "suitable"
     legs = [LegOut(mode=leg["mode"], instruction=leg["instruction"], minutes=leg["minutes"],
                    distance_m=leg.get("distance_m", 0), max_gradient_pct=leg.get("max_gradient_pct"),
-                   line=leg.get("line")) for leg in option["legs"]]
+                   line=leg.get("line"), geometry=leg.get("geometry"), map_stops=leg.get("map_stops", [])) for leg in option["legs"]]
     return OptionAssessment(
         id=option["id"], title=option["title"], kind=option["kind"], legs=legs,
         total_minutes=total, leave_at=leave_at, arrive_at=arrive_by, status=status,

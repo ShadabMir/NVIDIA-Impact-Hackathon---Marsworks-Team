@@ -109,6 +109,17 @@ async def navigation(payload: NavigationRequest):
     except httpx.TimeoutException as exc:
         raise HTTPException(504, "Directions provider timed out; please retry") from exc
     except httpx.HTTPStatusError as exc:
+        try:
+            error = exc.response.json().get("error", {})
+            code = error.get("code") if isinstance(error, dict) else None
+        except ValueError:
+            code = None
+        if code in {2009, 2010}:
+            raise HTTPException(422, "No wheelchair route was found between these map points with your current preferences. Check the starting point and exact hospital entrance; no alternative route has been assumed.") from exc
+        if exc.response.status_code in {401, 403}:
+            raise HTTPException(503, "The directions provider rejected its configured key. Check the backend routing configuration.") from exc
+        if exc.response.status_code == 429:
+            raise HTTPException(503, "The directions provider's request limit was reached. Please retry later.") from exc
         raise HTTPException(502, "The wheelchair routing provider could not supply a route. Check its key, quota and route coverage.") from exc
     except (httpx.HTTPError, KeyError, ValueError, IndexError, TypeError) as exc:
         raise HTTPException(502, "No usable wheelchair directions were returned") from exc
