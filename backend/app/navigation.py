@@ -27,6 +27,13 @@ class NavigationRequest(StrictModel):
     access: AccessRequirements
 
 
+@router.get("/navigation/options/{option_id}/map")
+def transport_option_map(option_id: str):
+    from app.services.transport_map import fetch_map_elements, map_option, option_by_id
+    option = option_by_id(option_id)
+    return map_option(option, fetch_map_elements(option_id))
+
+
 @lru_cache(maxsize=100)
 def geocode_request(kind: str, params: tuple):
     global _last_geocode
