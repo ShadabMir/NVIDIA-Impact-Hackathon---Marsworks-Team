@@ -13,6 +13,14 @@ const LABELS = [
   ["appointment_time", "Appointment time"], ["arrival", "Arrive by"], ["origin", "Travelling from"],
 ];
 
+const SERVICE_MESSAGES = {
+  checking: "Checking voice input…",
+  loading: "Voice input is starting up. Try again in a minute.",
+  not_configured: "Voice input isn't switched on yet. Please type the details below. (Setup: Settings → Voice input.)",
+  error: "Voice input isn't working right now. Please type the details below.",
+  unreachable: "Voice input isn't available right now. Please type the details below.",
+};
+
 // Stop the microphone, level meter and timers.
 function release(p) {
   clearInterval(p.timer); cancelAnimationFrame(p.frame);
@@ -153,8 +161,7 @@ export default function VoiceInput({ disabled, onApply }) {
     setState("idle"); setResult(null);
   }
 
-  // Show nothing while checking (no flash) or when voice input isn't set up; Settings explains why.
-  if (service === "checking" || service === "not_configured") return null;
+  // Always shown, so it never appears to vanish: the button is enabled only when the speech service is ready.
   const available = service === "ready" && !unsupported;
   const found = result ? LABELS.filter(([key]) => result.details[key]) : [];
 
@@ -164,7 +171,7 @@ export default function VoiceInput({ disabled, onApply }) {
         <h3 id="voice-title" className="h5 mb-1">Tell us about your appointment</h3>
         <p className="small mb-2">Say the clinic, the date and the time, for example: <em>“Neuro rehab at the Hallamshire, Monday the 16th at half past ten.”</em></p>
         {!available && <p className="small text-muted mb-2" role="status">
-          {unsupported || (service === "loading" ? "Voice input is starting up. Try again in a minute." : "Voice input isn't available right now. Please type the details below.")}
+          {unsupported || SERVICE_MESSAGES[service] || SERVICE_MESSAGES.unreachable}
         </p>}
 
         {state === "idle" && <button type="button" className="btn btn-primary btn-accessible voice-button" disabled={disabled || !available} onClick={start}>

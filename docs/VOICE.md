@@ -35,7 +35,7 @@ used until the person checks the form and ticks "I have checked…".
 | Recording too short, or silent | "That was too short…" or "We didn't hear anything…" (not uploaded) |
 | Noise only / Whisper invents text | "Speech was too unclear…", nothing filled |
 | Few words recognised | A warning, with the transcript editable |
-| Speech service not set up (`ASR_BASE_URL` blank) | The voice section is hidden |
+| Speech service not set up (`ASR_BASE_URL` blank) | Voice section shown with the button disabled: "Voice input isn't switched on yet…"; Settings → Voice input says how to set it up |
 | Speech service down or loading | Button disabled, "Voice input isn't available right now"; mid-use: "The speech service isn't reachable…" |
 | Speech service slow (more than 60 s) | "The speech service took too long…" |
 | Nemotron down, or returns bad output | Transcript shown; "The AI couldn't read the details…"; nothing auto-filled |

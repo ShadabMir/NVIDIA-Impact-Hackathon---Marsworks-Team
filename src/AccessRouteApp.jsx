@@ -34,7 +34,7 @@ function nearestArea(point, origins) {
   }
   return best && best.km <= AREA_RADIUS_KM ? best : { id: NO_DATA_AREA, name: "Somewhere else", km: best?.km ?? null };
 }
-// Voice input status for Settings. The voice button is hidden on the appointment page unless "ready".
+// Voice input status for Settings. The voice button on the appointment page works only when "ready".
 const VOICE_STATUS = {
   ready: "Ready",
   loading: "Starting: the speech model is loading on the Spark",
